@@ -13,7 +13,9 @@ export default function Home() {
   const [message, setMessage] = useState("");
   const [reply, setReply] = useState("");
   const [loading, setLoading] = useState(false);
+
   const [speaking, setSpeaking] = useState(false);
+  const [listening, setListening] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
@@ -48,7 +50,9 @@ export default function Home() {
         const weatherData = await weatherRes.json();
 
         setWeather(
-          `${weatherData.city} · ${weatherData.temperature}°C · ${weatherData.weather}`
+          `${weatherData.city || "London"} · ${weatherData.temperature || "?"}°C · ${
+            weatherData.weather || "天气更新中"
+          }`
         );
 
         const briefRes = await fetch("/api/brief");
@@ -86,10 +90,52 @@ export default function Home() {
       const audio = new Audio(audioUrl);
 
       audio.onended = () => setSpeaking(false);
+      audio.onerror = () => setSpeaking(false);
       audio.play();
     } catch {
       setSpeaking(false);
     }
+  }
+
+  function startVoiceInput() {
+    const SpeechRecognition =
+      (window as any).webkitSpeechRecognition ||
+      (window as any).SpeechRecognition;
+
+    if (!SpeechRecognition) {
+      setReply("当前浏览器不支持语音输入。建议用 iPhone Safari 或 Chrome。");
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+
+    recognition.lang = "zh-CN";
+    recognition.interimResults = true;
+    recognition.continuous = false;
+
+    setListening(true);
+    setMessage("");
+
+    recognition.onresult = (event: any) => {
+      let text = "";
+
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        text += event.results[i][0].transcript;
+      }
+
+      setMessage(text);
+    };
+
+    recognition.onerror = () => {
+      setListening(false);
+      setReply("语音识别失败，可以再试一次。");
+    };
+
+    recognition.onend = () => {
+      setListening(false);
+    };
+
+    recognition.start();
   }
 
   async function sendMessage() {
@@ -192,214 +238,105 @@ export default function Home() {
   return (
     <main
       style={{
-        minHeight: "100vh",
+        minHeight: "100dvh",
+        overflowX: "hidden",
         background:
-          "radial-gradient(circle at top left, #1a1a1a 0%, #090909 42%, #050505 100%)",
+          "radial-gradient(circle at 20% 0%, rgba(80,90,140,0.18), transparent 34%), linear-gradient(180deg, #101010 0%, #050505 100%)",
         color: "white",
         fontFamily:
           "-apple-system, BlinkMacSystemFont, SF Pro Display, Inter, sans-serif",
-        padding: "clamp(22px, 5vw, 46px)",
+        padding: "clamp(18px, 4vw, 36px)",
+        paddingBottom: "calc(150px + env(safe-area-inset-bottom))",
       }}
     >
-      <div
-        style={{
-          maxWidth: "960px",
-          margin: "0 auto",
-        }}
-      >
-        <section
-          style={{
-            marginBottom: "clamp(36px, 8vw, 70px)",
-          }}
-        >
+      <div style={{ maxWidth: "920px", margin: "0 auto" }}>
+        <section style={{ marginBottom: "34px" }}>
           <div
             style={{
-              fontSize: "clamp(58px, 17vw, 96px)",
-              fontWeight: 650,
-              letterSpacing: "-0.07em",
-              lineHeight: 0.92,
+              fontSize: "clamp(66px, 20vw, 108px)",
+              fontWeight: 700,
+              letterSpacing: "-0.08em",
+              lineHeight: 0.9,
             }}
           >
             {time}
           </div>
 
-          <div
-            style={{
-              marginTop: "14px",
-              color: "#8d8d8d",
-              fontSize: "clamp(14px, 3.5vw, 17px)",
-            }}
-          >
-            {date}
-          </div>
-
-          <div
-            style={{
-              marginTop: "8px",
-              color: "#a0a0a0",
-              fontSize: "clamp(13px, 3.2vw, 15px)",
-            }}
-          >
-            {weather}
-          </div>
+          <div style={mutedText}>{date}</div>
+          <div style={{ ...mutedText, marginTop: "8px" }}>{weather}</div>
         </section>
 
-        <section
-          style={{
-            marginBottom: "28px",
-          }}
-        >
+        <section style={{ marginBottom: "34px" }}>
           <div
             style={{
-              fontSize: "clamp(36px, 9vw, 52px)",
-              fontWeight: 620,
-              letterSpacing: "-0.04em",
-              marginBottom: "12px",
+              fontSize: "clamp(42px, 11vw, 58px)",
+              fontWeight: 650,
+              letterSpacing: "-0.05em",
             }}
           >
             {greeting}
           </div>
 
-          <div
-            style={{
-              color: "#9b9b9b",
-              fontSize: "clamp(15px, 3.5vw, 17px)",
-              lineHeight: 1.8,
-            }}
-          >
-            sana 已在线。
-          </div>
+          <div style={{ ...mutedText, marginTop: "14px" }}>sana 已在线。</div>
         </section>
 
-        <section
-          style={{
-            background: "rgba(255,255,255,0.055)",
-            border: "1px solid rgba(255,255,255,0.09)",
-            borderRadius: "30px",
-            padding: "clamp(22px, 5vw, 30px)",
-            marginBottom: "18px",
-            backdropFilter: "blur(18px)",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: "18px",
-            }}
-          >
-            <div
-              style={{
-                color: "#8e8e8e",
-                fontSize: "13px",
-              }}
-            >
-              今日总结
-            </div>
+        <Card>
+          <Row>
+            <Label>今日总结</Label>
 
             <button
               onClick={() => speakText(todayBrief)}
-              style={{
-                background: "rgba(255,255,255,0.06)",
-                border: "1px solid rgba(255,255,255,0.12)",
-                color: speaking ? "#ffffff" : "#a7a7a7",
-                padding: "8px 14px",
-                borderRadius: "999px",
-                cursor: "pointer",
-                fontSize: "13px",
-              }}
+              style={smallVoiceButton(speaking)}
             >
               {speaking ? "Speaking" : "Voice"}
             </button>
-          </div>
+          </Row>
 
-          <div
-            style={{
-              color: "#eeeeee",
-              lineHeight: 1.95,
-              whiteSpace: "pre-wrap",
-              fontSize: "clamp(14px, 3.5vw, 15px)",
-            }}
-          >
-            {todayBrief}
-          </div>
-        </section>
+          <div style={bodyText}>{todayBrief}</div>
+        </Card>
 
-        <section
-          style={{
-            background: "rgba(255,255,255,0.055)",
-            border: "1px solid rgba(255,255,255,0.09)",
-            borderRadius: "30px",
-            padding: "clamp(22px, 5vw, 30px)",
-            minHeight: "210px",
-            marginBottom: "20px",
-            backdropFilter: "blur(18px)",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              marginBottom: "16px",
-            }}
-          >
-            <div
-              style={{
-                color: "#8e8e8e",
-                fontSize: "13px",
-              }}
-            >
-              sana
-            </div>
+        <Card minHeight={190}>
+          <Row>
+            <Label>sana</Label>
 
             {reply && (
               <button
                 onClick={() => speakText(currentText)}
-                style={{
-                  background: "rgba(255,255,255,0.06)",
-                  border: "1px solid rgba(255,255,255,0.12)",
-                  color: speaking ? "#ffffff" : "#a7a7a7",
-                  padding: "8px 14px",
-                  borderRadius: "999px",
-                  cursor: "pointer",
-                  fontSize: "13px",
-                }}
+                style={smallVoiceButton(speaking)}
               >
                 {speaking ? "Speaking" : "Voice"}
               </button>
             )}
-          </div>
+          </Row>
 
-          <div
-            style={{
-              lineHeight: 1.9,
-              whiteSpace: "pre-wrap",
-              color: "#f0f0f0",
-              fontSize: "clamp(14px, 3.5vw, 15px)",
-            }}
-          >
+          <div style={bodyText}>
             {loading ? "sana 正在处理..." : reply || "今天想让我先处理什么？"}
           </div>
-        </section>
+        </Card>
 
         <section
           style={{
-            position: "sticky",
-            bottom: "18px",
-            background: "rgba(18,18,18,0.92)",
-            border: "1px solid rgba(255,255,255,0.1)",
-            borderRadius: "26px",
+            position: "fixed",
+            left: "50%",
+            transform: "translateX(-50%)",
+            bottom: "max(12px, env(safe-area-inset-bottom))",
+            width: "min(920px, calc(100vw - 28px))",
+            background: "rgba(18,18,20,0.88)",
+            border: "1px solid rgba(255,255,255,0.12)",
+            borderRadius: "30px",
             padding: "12px",
-            backdropFilter: "blur(22px)",
+            backdropFilter: "blur(26px)",
+            WebkitBackdropFilter: "blur(26px)",
+            boxShadow: "0 24px 70px rgba(0,0,0,0.48)",
+            zIndex: 10,
           }}
         >
           {menuOpen && (
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "repeat(3, 1fr)",
-                gap: "10px",
+                gridTemplateColumns: "repeat(4, 1fr)",
+                gap: "9px",
                 marginBottom: "12px",
               }}
             >
@@ -412,6 +349,30 @@ export default function Home() {
               <button onClick={generateCalendar} style={actionStyle}>
                 日程
               </button>
+              <button onClick={startVoiceInput} style={actionStyle}>
+                语音
+              </button>
+            </div>
+          )}
+
+          {listening && (
+            <div
+              style={{
+                marginBottom: "12px",
+                padding: "14px 16px",
+                borderRadius: "22px",
+                background:
+                  "linear-gradient(135deg, rgba(120,110,255,0.16), rgba(90,180,255,0.08))",
+                border: "1px solid rgba(150,150,255,0.2)",
+                color: "#d9dcff",
+                fontSize: "14px",
+                display: "flex",
+                alignItems: "center",
+                gap: "12px",
+              }}
+            >
+              <span style={orbStyle}>✦</span>
+              正在听你说话，识别后会先变成文字。
             </div>
           )}
 
@@ -425,14 +386,15 @@ export default function Home() {
             <button
               onClick={() => setMenuOpen(!menuOpen)}
               style={{
-                width: "46px",
-                height: "46px",
-                borderRadius: "16px",
+                width: "52px",
+                height: "52px",
+                borderRadius: "18px",
                 border: "1px solid rgba(255,255,255,0.12)",
                 background: menuOpen ? "white" : "rgba(255,255,255,0.07)",
                 color: menuOpen ? "black" : "white",
-                fontSize: "24px",
+                fontSize: "28px",
                 cursor: "pointer",
+                flexShrink: 0,
               }}
             >
               {menuOpen ? "×" : "+"}
@@ -441,7 +403,7 @@ export default function Home() {
             <input
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              placeholder="问 sana，或输入计划、邮件、日程..."
+              placeholder={listening ? "正在识别语音..." : "问 sana，或输入计划、邮件、日程..."}
               style={{
                 flex: 1,
                 minWidth: 0,
@@ -450,21 +412,47 @@ export default function Home() {
                 outline: "none",
                 color: "white",
                 padding: "14px 4px",
-                fontSize: "15px",
+                fontSize: "16px",
               }}
             />
 
             <button
-              onClick={sendMessage}
+              onClick={startVoiceInput}
               style={{
-                background: "white",
-                color: "black",
-                border: "none",
-                padding: "14px 20px",
-                borderRadius: "16px",
-                fontWeight: 560,
+                width: "52px",
+                height: "52px",
+                borderRadius: "18px",
+                border: listening
+                  ? "1px solid rgba(160,150,255,0.75)"
+                  : "1px solid rgba(255,255,255,0.12)",
+                background: listening
+                  ? "radial-gradient(circle, rgba(150,140,255,0.35), rgba(90,120,255,0.12))"
+                  : "rgba(255,255,255,0.07)",
+                color: "white",
                 cursor: "pointer",
+                flexShrink: 0,
+                boxShadow: listening
+                  ? "0 0 28px rgba(130,120,255,0.45)"
+                  : "none",
+                transition: "all 0.22s ease",
+              }}
+            >
+              {listening ? "◌" : "⌁"}
+            </button>
+
+            <button
+              onClick={sendMessage}
+              disabled={!message.trim() || loading}
+              style={{
+                background: message.trim() ? "white" : "rgba(255,255,255,0.18)",
+                color: message.trim() ? "black" : "#9a9a9a",
+                border: "none",
+                padding: "16px 20px",
+                borderRadius: "18px",
+                fontWeight: 650,
+                cursor: message.trim() ? "pointer" : "default",
                 whiteSpace: "nowrap",
+                flexShrink: 0,
               }}
             >
               发送
@@ -476,6 +464,71 @@ export default function Home() {
   );
 }
 
+function Card({
+  children,
+  minHeight,
+}: {
+  children: React.ReactNode;
+  minHeight?: number;
+}) {
+  return (
+    <section
+      style={{
+        background: "rgba(255,255,255,0.055)",
+        border: "1px solid rgba(255,255,255,0.1)",
+        borderRadius: "32px",
+        padding: "clamp(22px, 5vw, 32px)",
+        marginBottom: "18px",
+        minHeight,
+        backdropFilter: "blur(20px)",
+        WebkitBackdropFilter: "blur(20px)",
+        boxShadow: "inset 0 1px 0 rgba(255,255,255,0.06)",
+      }}
+    >
+      {children}
+    </section>
+  );
+}
+
+function Row({ children }: { children: React.ReactNode }) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        gap: "14px",
+        marginBottom: "18px",
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function Label({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{ color: "#8d8d8d", fontSize: "14px", fontWeight: 600 }}>
+      {children}
+    </div>
+  );
+}
+
+const mutedText: React.CSSProperties = {
+  marginTop: "16px",
+  color: "#9d9d9d",
+  fontSize: "clamp(15px, 4vw, 18px)",
+  fontWeight: 560,
+};
+
+const bodyText: React.CSSProperties = {
+  color: "#f2f2f2",
+  lineHeight: 1.9,
+  whiteSpace: "pre-wrap",
+  fontSize: "clamp(15px, 4vw, 17px)",
+  fontWeight: 560,
+};
+
 const actionStyle: React.CSSProperties = {
   background: "rgba(255,255,255,0.07)",
   border: "1px solid rgba(255,255,255,0.12)",
@@ -484,4 +537,34 @@ const actionStyle: React.CSSProperties = {
   borderRadius: "16px",
   cursor: "pointer",
   fontSize: "14px",
+  fontWeight: 650,
 };
+
+const orbStyle: React.CSSProperties = {
+  width: "26px",
+  height: "26px",
+  borderRadius: "999px",
+  display: "grid",
+  placeItems: "center",
+  color: "#ffffff",
+  background: "rgba(140,140,255,0.18)",
+  boxShadow: "0 0 22px rgba(130,120,255,0.45)",
+};
+
+function smallVoiceButton(active: boolean): React.CSSProperties {
+  return {
+    background: active
+      ? "rgba(140,140,255,0.16)"
+      : "rgba(255,255,255,0.06)",
+    border: active
+      ? "1px solid rgba(160,150,255,0.45)"
+      : "1px solid rgba(255,255,255,0.12)",
+    color: active ? "#ffffff" : "#b6b6b6",
+    padding: "9px 15px",
+    borderRadius: "999px",
+    cursor: "pointer",
+    fontSize: "14px",
+    fontWeight: 650,
+    boxShadow: active ? "0 0 22px rgba(130,120,255,0.28)" : "none",
+  };
+}
