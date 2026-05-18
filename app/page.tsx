@@ -27,123 +27,198 @@ export default function Home() {
 
   return (
     <main
-      className="
-      h-[100dvh]
-      overflow-hidden
-      bg-[#050505]
-      text-white
-      relative
-      flex
-      flex-col
-    "
+      style={{
+        height: "100dvh",
+        overflow: "hidden",
+        background:
+          "radial-gradient(circle at top, rgba(30,30,50,0.85) 0%, #050505 55%)",
+        color: "white",
+        position: "relative",
+        fontFamily:
+          "-apple-system,BlinkMacSystemFont,'SF Pro Display','PingFang SC',sans-serif",
+      }}
     >
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,#1a1a2d_0%,#050505_55%)] opacity-80" />
-
+      {/* 主内容 */}
       <div
-        className="
-        relative
-        z-10
-        flex-1
-        overflow-y-auto
-        px-6
-        pt-[max(env(safe-area-inset-top),32px)]
-        pb-40
-      "
+        style={{
+          height: "100%",
+          overflowY: "auto",
+          paddingLeft: 24,
+          paddingRight: 24,
+          paddingTop: "max(env(safe-area-inset-top),32px)",
+          paddingBottom: 180,
+        }}
       >
-        <div className="space-y-3">
-          <h1 className="text-[88px] leading-[0.9] font-black tracking-[-6px]">
+        {/* 时间 */}
+        <div>
+          <div
+            style={{
+              fontSize: 92,
+              fontWeight: 900,
+              lineHeight: 0.9,
+              letterSpacing: -6,
+            }}
+          >
             {time}
-          </h1>
+          </div>
 
-          <div className="space-y-1 text-white/70">
-            <p className="text-[18px] font-medium">5月18日 星期一</p>
-
-            <p className="text-[18px]">London • 9°C • 多云</p>
+          <div
+            style={{
+              marginTop: 20,
+              color: "rgba(255,255,255,0.72)",
+              fontSize: 20,
+              lineHeight: 1.7,
+            }}
+          >
+            <div>5月18日 星期一</div>
+            <div>London • 9°C • 多云</div>
           </div>
         </div>
 
-        <div className="mt-16">
-          <h2 className="text-[72px] leading-none font-black">早上好</h2>
+        {/* 欢迎 */}
+        <div style={{ marginTop: 70 }}>
+          <div
+            style={{
+              fontSize: 76,
+              fontWeight: 900,
+              lineHeight: 1,
+              letterSpacing: -4,
+            }}
+          >
+            早上好
+          </div>
 
-          <p className="mt-3 text-white/55 text-[20px] font-medium">
+          <div
+            style={{
+              marginTop: 14,
+              fontSize: 24,
+              color: "rgba(255,255,255,0.58)",
+              fontWeight: 600,
+            }}
+          >
             sana 已在线。
-          </p>
+          </div>
         </div>
 
+        {/* 今日总结 */}
         <div
-          className="
-          mt-10
-          rounded-[34px]
-          border
-          border-white/8
-          bg-white/[0.03]
-          backdrop-blur-xl
-          p-7
-        "
+          style={{
+            marginTop: 36,
+            borderRadius: 36,
+            padding: 28,
+            background: "rgba(255,255,255,0.04)",
+            backdropFilter: "blur(24px)",
+            WebkitBackdropFilter: "blur(24px)",
+            border: "1px solid rgba(255,255,255,0.08)",
+            boxShadow: "0 8px 40px rgba(0,0,0,0.35)",
+          }}
         >
-          <div className="flex items-start justify-between">
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "flex-start",
+            }}
+          >
             <div>
-              <p className="text-white/45 text-sm">今日总结</p>
+              <div
+                style={{
+                  fontSize: 16,
+                  color: "rgba(255,255,255,0.45)",
+                }}
+              >
+                今日总结
+              </div>
 
-              <p className="mt-6 text-[34px] leading-tight font-semibold">
+              <div
+                style={{
+                  marginTop: 28,
+                  fontSize: 38,
+                  lineHeight: 1.3,
+                  fontWeight: 700,
+                }}
+              >
                 正在整理今天的重要信息…
-              </p>
+              </div>
             </div>
 
+            {/* voice */}
             <button
-              className="
-              h-14
-              w-14
-              rounded-full
-              border
-              border-white/10
-              bg-white/[0.04]
-              flex
-              items-center
-              justify-center
-              active:scale-95
-              transition
-            "
+              style={{
+                width: 72,
+                height: 72,
+                borderRadius: "50%",
+                border: "1px solid rgba(255,255,255,0.1)",
+                background: "rgba(255,255,255,0.05)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "white",
+                fontSize: 16,
+                fontWeight: 700,
+                backdropFilter: "blur(12px)",
+              }}
             >
-              <div className="h-3 w-3 rounded-full bg-white/80 animate-pulse" />
+              Voice
             </button>
           </div>
         </div>
 
+        {/* AI 卡片 */}
         <div
-          className="
-          mt-6
-          rounded-[34px]
-          border
-          border-white/8
-          bg-white/[0.02]
-          backdrop-blur-xl
-          p-7
-        "
+          style={{
+            marginTop: 24,
+            borderRadius: 36,
+            padding: 28,
+            background: "rgba(255,255,255,0.03)",
+            backdropFilter: "blur(24px)",
+            WebkitBackdropFilter: "blur(24px)",
+            border: "1px solid rgba(255,255,255,0.08)",
+            boxShadow: "0 8px 40px rgba(0,0,0,0.35)",
+          }}
         >
-          <p className="text-white/40 text-sm">sana</p>
+          <div
+            style={{
+              fontSize: 16,
+              color: "rgba(255,255,255,0.4)",
+            }}
+          >
+            sana
+          </div>
 
-          <p className="mt-5 text-[36px] leading-tight font-semibold">
+          <div
+            style={{
+              marginTop: 24,
+              fontSize: 42,
+              lineHeight: 1.3,
+              fontWeight: 700,
+            }}
+          >
             今天想让我先处理什么？
-          </p>
+          </div>
 
-          <div className="mt-8 flex flex-wrap gap-3">
+          {/* 按钮 */}
+          <div
+            style={{
+              display: "flex",
+              gap: 12,
+              marginTop: 34,
+              flexWrap: "wrap",
+            }}
+          >
             {["邮件", "待办", "日程"].map((item) => (
               <button
                 key={item}
-                className="
-                px-5
-                py-3
-                rounded-full
-                border
-                border-white/10
-                bg-white/[0.03]
-                text-[16px]
-                active:scale-95
-                transition-all
-                duration-200
-                hover:bg-white/[0.06]
-              "
+                style={{
+                  padding: "14px 22px",
+                  borderRadius: 999,
+                  border: "1px solid rgba(255,255,255,0.1)",
+                  background: "rgba(255,255,255,0.04)",
+                  color: "white",
+                  fontSize: 17,
+                  fontWeight: 600,
+                  backdropFilter: "blur(10px)",
+                }}
               >
                 ○ {item}
               </button>
@@ -152,43 +227,54 @@ export default function Home() {
         </div>
       </div>
 
+      {/* 底部输入栏 */}
       <div
-        className="
-        fixed
-        bottom-0
-        left-0
-        right-0
-        z-20
-        px-5
-        pb-[max(env(safe-area-inset-bottom),24px)]
-      "
+        style={{
+          position: "fixed",
+          left: 0,
+          right: 0,
+          bottom: 0,
+          paddingLeft: 18,
+          paddingRight: 18,
+          paddingBottom: "max(env(safe-area-inset-bottom),20px)",
+          zIndex: 20,
+        }}
       >
         <div
-          className="
-          rounded-[34px]
-          border
-          border-white/10
-          bg-[#0d0d0d]/90
-          backdrop-blur-2xl
-          p-3
-          shadow-2xl
-        "
+          style={{
+            borderRadius: 38,
+            background: "rgba(15,15,15,0.78)",
+            backdropFilter: "blur(30px)",
+            WebkitBackdropFilter: "blur(30px)",
+            border: "1px solid rgba(255,255,255,0.08)",
+            padding: 14,
+            boxShadow: "0 -10px 40px rgba(0,0,0,0.45)",
+          }}
         >
+          {/* 展开功能 */}
           {expanded && (
-            <div className="flex gap-2 mb-3 overflow-x-auto no-scrollbar">
+            <div
+              style={{
+                display: "flex",
+                gap: 10,
+                overflowX: "auto",
+                marginBottom: 14,
+                paddingBottom: 4,
+              }}
+            >
               {["○ 邮件", "○ 待办", "○ 日程", "○ 文件"].map((item) => (
                 <button
                   key={item}
-                  className="
-                  whitespace-nowrap
-                  px-4
-                  py-2
-                  rounded-full
-                  bg-white/[0.05]
-                  border
-                  border-white/10
-                  text-sm
-                "
+                  style={{
+                    whiteSpace: "nowrap",
+                    padding: "12px 18px",
+                    borderRadius: 999,
+                    border: "1px solid rgba(255,255,255,0.08)",
+                    background: "rgba(255,255,255,0.04)",
+                    color: "white",
+                    fontSize: 15,
+                    fontWeight: 600,
+                  }}
                 >
                   {item}
                 </button>
@@ -196,61 +282,76 @@ export default function Home() {
             </div>
           )}
 
-          <div className="flex items-center gap-3">
+          {/* 输入区域 */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
+            }}
+          >
+            {/* + */}
             <button
               onClick={() => setExpanded(!expanded)}
-              className="
-              h-14
-              w-14
-              shrink-0
-              rounded-full
-              bg-white/[0.04]
-              border
-              border-white/10
-              text-3xl
-              text-white/90
-              flex
-              items-center
-              justify-center
-              active:scale-95
-              transition
-            "
+              style={{
+                width: 58,
+                height: 58,
+                borderRadius: "50%",
+                border: "1px solid rgba(255,255,255,0.1)",
+                background: "rgba(255,255,255,0.05)",
+                color: "white",
+                fontSize: 34,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+              }}
             >
               {expanded ? "×" : "+"}
             </button>
 
+            {/* 输入框 */}
             <input
-              placeholder="问 sana…"
-              className="
-              flex-1
-              bg-transparent
-              outline-none
-              text-[18px]
-              placeholder:text-white/35
-            "
+              placeholder="问 sana..."
+              style={{
+                flex: 1,
+                height: 58,
+                borderRadius: 999,
+                border: "1px solid rgba(255,255,255,0.06)",
+                background: "rgba(255,255,255,0.03)",
+                color: "white",
+                paddingLeft: 22,
+                paddingRight: 22,
+                fontSize: 18,
+                outline: "none",
+                backdropFilter: "blur(12px)",
+              }}
             />
 
+            {/* 语音 */}
             <button
-              className="
-              h-14
-              w-14
-              shrink-0
-              rounded-full
-              border
-              border-white/10
-              bg-white/[0.04]
-              flex
-              items-center
-              justify-center
-              active:scale-95
-              transition
-            "
+              style={{
+                width: 58,
+                height: 58,
+                borderRadius: "50%",
+                border: "1px solid rgba(255,255,255,0.1)",
+                background: "rgba(255,255,255,0.05)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+                backdropFilter: "blur(10px)",
+              }}
             >
-              <div className="relative flex items-center justify-center">
-                <div className="absolute h-6 w-6 rounded-full bg-white/10 animate-ping" />
-
-                <div className="relative h-3 w-3 rounded-full bg-white/80" />
-              </div>
+              <div
+                style={{
+                  width: 10,
+                  height: 10,
+                  borderRadius: "50%",
+                  background: "white",
+                  opacity: 0.9,
+                }}
+              />
             </button>
           </div>
         </div>
