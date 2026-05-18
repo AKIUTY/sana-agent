@@ -13,15 +13,15 @@ type ToolName =
   | "weather"
   | "chat";
 
-async function callTool(tool: ToolName, input: string) {
+async function callTool(baseUrl: string, tool: ToolName, input: string) {
   if (tool === "email_summary") {
-    const res = await fetch("http://localhost:3000/api/summary");
+    const res = await fetch(`${baseUrl}/api/summary`);
     const data = await res.json();
     return data.summary || "邮件总结暂时不可用。";
   }
 
   if (tool === "tasks") {
-    const res = await fetch("http://localhost:3000/api/tasks", {
+    const res = await fetch(`${baseUrl}/api/tasks`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -34,7 +34,7 @@ async function callTool(tool: ToolName, input: string) {
   }
 
   if (tool === "calendar") {
-    const res = await fetch("http://localhost:3000/api/calendar", {
+    const res = await fetch(`${baseUrl}/api/calendar`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -47,19 +47,19 @@ async function callTool(tool: ToolName, input: string) {
   }
 
   if (tool === "brief") {
-    const res = await fetch("http://localhost:3000/api/brief");
+    const res = await fetch(`${baseUrl}/api/brief`);
     const data = await res.json();
     return data.summary || "今日总结暂时不可用。";
   }
 
   if (tool === "finance") {
-    const res = await fetch("http://localhost:3000/api/finance");
+    const res = await fetch(`${baseUrl}/api/finance`);
     const data = await res.json();
     return data.summary || "财经摘要暂时不可用。";
   }
 
   if (tool === "weather") {
-    const res = await fetch("http://localhost:3000/api/weather");
+    const res = await fetch(`${baseUrl}/api/weather`);
     const data = await res.json();
     return `${data.city} · ${data.temperature}°C · ${data.weather}`;
   }
@@ -69,6 +69,7 @@ async function callTool(tool: ToolName, input: string) {
 
 export async function POST(req: Request) {
   try {
+    const baseUrl = new URL(req.url).origin;
     const body = await req.json();
     const userMessage = body.message;
 
@@ -148,7 +149,7 @@ export async function POST(req: Request) {
     for (const tool of tools) {
       if (tool === "chat") continue;
 
-      const result = await callTool(tool, userMessage);
+      const result = await callTool(baseUrl, tool, userMessage);
 
       results.push({
         tool,
@@ -164,12 +165,12 @@ export async function POST(req: Request) {
           content: `
 你是 sana，一个私人AI助理。
 
-你刚刚调用了多个工具。
-现在请把这些工具结果整合成一个自然、清晰、有用的中文回复。
+你刚刚获得了多个系统结果。
+请把这些结果整合成一个自然、清晰、有用的中文回复。
 
 要求：
 - 不要说“我调用了工具”
-- 不要机械列接口名
+- 不要说接口名
 - 像私人助理一样总结
 - 给用户下一步建议
 - 简洁但有条理
@@ -181,7 +182,7 @@ export async function POST(req: Request) {
 用户请求：
 ${userMessage}
 
-工具结果：
+系统结果：
 ${JSON.stringify(results, null, 2)}
 `,
         },
@@ -194,12 +195,13 @@ ${JSON.stringify(results, null, 2)}
       tools,
       reply: finalAnswer.choices[0].message.content,
     });
-  } catch (error) {
-    console.error(error);
+  } catch (error: any) {
+    console.error("AGENT ERROR:", error);
 
     return Response.json({
       success: false,
       reply: "sana 多步骤任务处理失败。",
+      error: error?.message || String(error),
     });
   }
 }
