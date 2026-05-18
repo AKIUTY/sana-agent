@@ -13,11 +13,23 @@ async function getUnreadCount(user: string, pass: string, host: string) {
 
   await client.connect();
 
-  const mailbox = await client.mailboxOpen("INBOX");
+  await client.mailboxOpen("INBOX");
+
+  let count = 0;
+
+  for await (const message of client.fetch("1:*", {
+    flags: true,
+  })) {
+    const flags = Array.from(message.flags || []);
+
+    if (!flags.includes("\\Seen")) {
+      count++;
+    }
+  }
 
   await client.logout();
 
-  return mailbox.unseen || 0;
+  return count;
 }
 
 export async function GET() {
@@ -40,13 +52,15 @@ export async function GET() {
       second,
       total: first + second,
     });
-  } catch {
+  } catch (error: any) {
+    console.error(error);
+
     return Response.json({
       success: false,
       first: 0,
       second: 0,
       total: 0,
-      error: "Unread system failed.",
+      error: error?.message || String(error),
     });
   }
 }

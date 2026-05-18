@@ -17,54 +17,40 @@ async function getEmails(user: string, pass: string, host: string) {
   });
 
   await client.connect();
-
-  const lock = await client.getMailboxLock("INBOX");
+  await client.mailboxOpen("INBOX");
 
   const emails = [];
 
-  try {
-    for await (const msg of client.fetch("1:*", {
-      envelope: true,
-    })) {
-      emails.push({
-        subject: msg.envelope.subject,
-        from: msg.envelope.from?.[0]?.address,
-        date: msg.envelope.date,
-      });
-    }
-  } finally {
-    lock.release();
-    await client.logout();
+  for await (const msg of client.fetch("1:*", {
+    envelope: true,
+  })) {
+    emails.push({
+      subject: msg.envelope?.subject || "无主题",
+      from: msg.envelope?.from?.[0]?.address || "未知发件人",
+      date: msg.envelope?.date || "",
+    });
   }
+
+  await client.logout();
 
   return emails.slice(-5).reverse();
 }
 
 export async function GET() {
   try {
-    const emails1 = await getEmails(
+    const mailbox1 = await getEmails(
       process.env.EMAIL_USER!,
       process.env.EMAIL_PASS!,
       process.env.IMAP_HOST || "imap.163.com"
     );
 
-    const emails2 = await getEmails(
+    const mailbox2 = await getEmails(
       process.env.EMAIL2_USER!,
       process.env.EMAIL2_PASS!,
       process.env.EMAIL2_HOST || "imap.163.com"
     );
 
-    const allEmails = [
-      ...emails1.map((e) => ({
-        mailbox: "185Mail",
-        ...e,
-      })),
-
-      ...emails2.map((e) => ({
-        mailbox: "186Mail",
-        ...e,
-      })),
-    ];
+    const emails = [...mailbox1, ...mailbox2];
 
     const completion = await openai.chat.completions.create({
       model: "gpt-4.1-mini",
@@ -72,28 +58,28 @@ export async function GET() {
         {
           role: "system",
           content:
-            "你是 SANA，一位高级中文私人AI秘书。请总结多个邮箱的重要邮件，并提取待办事项、重要提醒、时间安排和需要回复的信息。",
+            "你是 sana 的邮件总结模块。请用中文总结这些邮件，语气自然、简洁，重点提取重要事项、风险、验证码、物流和需要处理的内容。",
         },
         {
           role: "user",
-          content: `请总结以下邮件：
-
-${JSON.stringify(allEmails, null, 2)}`,
+          content: JSON.stringify(emails, null, 2),
         },
       ],
     });
 
     return Response.json({
       success: true,
-      emails: allEmails,
+      emails,
       summary: completion.choices[0].message.content,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error(error);
 
     return Response.json({
       success: false,
-      error: "SANA 双邮箱系统失败。",
+      emails: [],
+      summary: "邮件总结失败。",
+      error: error?.message || String(error),
     });
   }
 }
