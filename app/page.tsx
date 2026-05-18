@@ -14,6 +14,7 @@ export default function Home() {
   const [reply, setReply] = useState("");
   const [loading, setLoading] = useState(false);
   const [speaking, setSpeaking] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     function updateClock() {
@@ -34,9 +35,9 @@ export default function Home() {
 
       setDate(
         now.toLocaleDateString("zh-CN", {
-          weekday: "long",
           month: "long",
           day: "numeric",
+          weekday: "long",
         })
       );
     }
@@ -95,9 +96,10 @@ export default function Home() {
     if (!message.trim()) return;
 
     setLoading(true);
+    setMenuOpen(false);
 
     try {
-      const res = await fetch("/api/chat", {
+      const res = await fetch("/api/agent", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -106,7 +108,7 @@ export default function Home() {
       });
 
       const data = await res.json();
-      setReply(data.reply);
+      setReply(data.reply || "sana 没有返回内容。");
     } catch {
       setReply("sana 当前无法连接。");
     }
@@ -117,12 +119,13 @@ export default function Home() {
 
   async function summarizeEmails() {
     setLoading(true);
+    setMenuOpen(false);
 
     try {
       const res = await fetch("/api/summary");
       const data = await res.json();
 
-      setReply(data.summary);
+      setReply(data.summary || "没有读取到邮件总结。");
     } catch {
       setReply("无法读取邮件。");
     }
@@ -132,6 +135,7 @@ export default function Home() {
 
   async function generateTasks() {
     setLoading(true);
+    setMenuOpen(false);
 
     try {
       const res = await fetch("/api/tasks", {
@@ -156,11 +160,13 @@ export default function Home() {
 
   async function generateCalendar() {
     if (!message.trim()) {
-      setReply("请先输入一段包含时间或事件的信息，例如：明天下午三点开会。");
+      setReply("先输入一段日程，例如：明天下午三点开会。");
+      setMenuOpen(false);
       return;
     }
 
     setLoading(true);
+    setMenuOpen(false);
 
     try {
       const res = await fetch("/api/calendar", {
@@ -168,9 +174,7 @@ export default function Home() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          text: message,
-        }),
+        body: JSON.stringify({ text: message }),
       });
 
       const data = await res.json();
@@ -189,42 +193,68 @@ export default function Home() {
     <main
       style={{
         minHeight: "100vh",
-        background: "#0a0a0a",
+        background:
+          "radial-gradient(circle at top left, #1a1a1a 0%, #090909 42%, #050505 100%)",
         color: "white",
-        padding: "40px",
         fontFamily:
-          "-apple-system, BlinkMacSystemFont, SF Pro Display, sans-serif",
+          "-apple-system, BlinkMacSystemFont, SF Pro Display, Inter, sans-serif",
+        padding: "clamp(22px, 5vw, 46px)",
       }}
     >
-      <div style={{ maxWidth: "920px", margin: "0 auto" }}>
-        <div style={{ marginBottom: "42px" }}>
+      <div
+        style={{
+          maxWidth: "960px",
+          margin: "0 auto",
+        }}
+      >
+        <section
+          style={{
+            marginBottom: "clamp(36px, 8vw, 70px)",
+          }}
+        >
           <div
             style={{
-              fontSize: "76px",
-              fontWeight: 600,
-              letterSpacing: "-4px",
-              lineHeight: 1,
+              fontSize: "clamp(58px, 17vw, 96px)",
+              fontWeight: 650,
+              letterSpacing: "-0.07em",
+              lineHeight: 0.92,
             }}
           >
             {time}
           </div>
 
-          <div style={{ marginTop: "10px", color: "#787878", fontSize: "17px" }}>
+          <div
+            style={{
+              marginTop: "14px",
+              color: "#8d8d8d",
+              fontSize: "clamp(14px, 3.5vw, 17px)",
+            }}
+          >
             {date}
           </div>
 
-          <div style={{ marginTop: "6px", color: "#8d8d8d", fontSize: "14px" }}>
-            {weather}
-          </div>
-        </div>
-
-        <div style={{ marginBottom: "36px" }}>
           <div
             style={{
-              fontSize: "42px",
-              fontWeight: 600,
-              letterSpacing: "-1px",
-              marginBottom: "10px",
+              marginTop: "8px",
+              color: "#a0a0a0",
+              fontSize: "clamp(13px, 3.2vw, 15px)",
+            }}
+          >
+            {weather}
+          </div>
+        </section>
+
+        <section
+          style={{
+            marginBottom: "28px",
+          }}
+        >
+          <div
+            style={{
+              fontSize: "clamp(36px, 9vw, 52px)",
+              fontWeight: 620,
+              letterSpacing: "-0.04em",
+              marginBottom: "12px",
             }}
           >
             {greeting}
@@ -233,22 +263,22 @@ export default function Home() {
           <div
             style={{
               color: "#9b9b9b",
-              fontSize: "16px",
-              lineHeight: "1.9",
-              fontWeight: 400,
+              fontSize: "clamp(15px, 3.5vw, 17px)",
+              lineHeight: 1.8,
             }}
           >
             sana 已在线。
           </div>
-        </div>
+        </section>
 
-        <div
+        <section
           style={{
-            background: "#111",
-            border: "1px solid #1d1d1d",
-            borderRadius: "28px",
-            padding: "28px",
+            background: "rgba(255,255,255,0.055)",
+            border: "1px solid rgba(255,255,255,0.09)",
+            borderRadius: "30px",
+            padding: "clamp(22px, 5vw, 30px)",
             marginBottom: "18px",
+            backdropFilter: "blur(18px)",
           }}
         >
           <div
@@ -256,18 +286,25 @@ export default function Home() {
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
-              marginBottom: "16px",
+              marginBottom: "18px",
             }}
           >
-            <div style={{ color: "#777", fontSize: "13px" }}>今日总结</div>
+            <div
+              style={{
+                color: "#8e8e8e",
+                fontSize: "13px",
+              }}
+            >
+              今日总结
+            </div>
 
             <button
               onClick={() => speakText(todayBrief)}
               style={{
-                background: "transparent",
-                border: "1px solid #2a2a2a",
-                color: speaking ? "#ffffff" : "#9a9a9a",
-                padding: "8px 13px",
+                background: "rgba(255,255,255,0.06)",
+                border: "1px solid rgba(255,255,255,0.12)",
+                color: speaking ? "#ffffff" : "#a7a7a7",
+                padding: "8px 14px",
                 borderRadius: "999px",
                 cursor: "pointer",
                 fontSize: "13px",
@@ -279,47 +316,51 @@ export default function Home() {
 
           <div
             style={{
-              color: "#e5e5e5",
-              lineHeight: "2",
+              color: "#eeeeee",
+              lineHeight: 1.95,
               whiteSpace: "pre-wrap",
-              fontSize: "15px",
+              fontSize: "clamp(14px, 3.5vw, 15px)",
             }}
           >
             {todayBrief}
           </div>
-        </div>
+        </section>
 
-        <div
+        <section
           style={{
-            background: "#111",
-            border: "1px solid #1d1d1d",
-            borderRadius: "28px",
-            padding: "28px",
-            minHeight: "220px",
+            background: "rgba(255,255,255,0.055)",
+            border: "1px solid rgba(255,255,255,0.09)",
+            borderRadius: "30px",
+            padding: "clamp(22px, 5vw, 30px)",
+            minHeight: "210px",
             marginBottom: "20px",
-            lineHeight: "1.9",
-            whiteSpace: "pre-wrap",
-            color: "#ececec",
-            fontSize: "15px",
+            backdropFilter: "blur(18px)",
           }}
         >
           <div
             style={{
               display: "flex",
               justifyContent: "space-between",
-              marginBottom: "14px",
+              marginBottom: "16px",
             }}
           >
-            <div style={{ color: "#777", fontSize: "13px" }}>sana</div>
+            <div
+              style={{
+                color: "#8e8e8e",
+                fontSize: "13px",
+              }}
+            >
+              sana
+            </div>
 
             {reply && (
               <button
                 onClick={() => speakText(currentText)}
                 style={{
-                  background: "transparent",
-                  border: "1px solid #2a2a2a",
-                  color: speaking ? "#ffffff" : "#9a9a9a",
-                  padding: "8px 13px",
+                  background: "rgba(255,255,255,0.06)",
+                  border: "1px solid rgba(255,255,255,0.12)",
+                  color: speaking ? "#ffffff" : "#a7a7a7",
+                  padding: "8px 14px",
                   borderRadius: "999px",
                   cursor: "pointer",
                   fontSize: "13px",
@@ -330,96 +371,117 @@ export default function Home() {
             )}
           </div>
 
-          {loading ? "sana 正在处理..." : reply || "今天想让我先处理什么？"}
-        </div>
+          <div
+            style={{
+              lineHeight: 1.9,
+              whiteSpace: "pre-wrap",
+              color: "#f0f0f0",
+              fontSize: "clamp(14px, 3.5vw, 15px)",
+            }}
+          >
+            {loading ? "sana 正在处理..." : reply || "今天想让我先处理什么？"}
+          </div>
+        </section>
 
-        <div
+        <section
           style={{
-            display: "flex",
-            gap: "10px",
-            background: "#111",
-            border: "1px solid #1d1d1d",
-            borderRadius: "24px",
+            position: "sticky",
+            bottom: "18px",
+            background: "rgba(18,18,18,0.92)",
+            border: "1px solid rgba(255,255,255,0.1)",
+            borderRadius: "26px",
             padding: "12px",
+            backdropFilter: "blur(22px)",
           }}
         >
-          <button
-            onClick={summarizeEmails}
+          {menuOpen && (
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(3, 1fr)",
+                gap: "10px",
+                marginBottom: "12px",
+              }}
+            >
+              <button onClick={summarizeEmails} style={actionStyle}>
+                邮件
+              </button>
+              <button onClick={generateTasks} style={actionStyle}>
+                待办
+              </button>
+              <button onClick={generateCalendar} style={actionStyle}>
+                日程
+              </button>
+            </div>
+          )}
+
+          <div
             style={{
-              background: "#1a1a1a",
-              border: "1px solid #2a2a2a",
-              color: "white",
-              padding: "0 16px",
-              borderRadius: "16px",
-              cursor: "pointer",
-              fontSize: "14px",
+              display: "flex",
+              gap: "10px",
+              alignItems: "center",
             }}
           >
-            邮件
-          </button>
+            <button
+              onClick={() => setMenuOpen(!menuOpen)}
+              style={{
+                width: "46px",
+                height: "46px",
+                borderRadius: "16px",
+                border: "1px solid rgba(255,255,255,0.12)",
+                background: menuOpen ? "white" : "rgba(255,255,255,0.07)",
+                color: menuOpen ? "black" : "white",
+                fontSize: "24px",
+                cursor: "pointer",
+              }}
+            >
+              {menuOpen ? "×" : "+"}
+            </button>
 
-          <button
-            onClick={generateTasks}
-            style={{
-              background: "#1a1a1a",
-              border: "1px solid #2a2a2a",
-              color: "white",
-              padding: "0 16px",
-              borderRadius: "16px",
-              cursor: "pointer",
-              fontSize: "14px",
-            }}
-          >
-            待办
-          </button>
+            <input
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder="问 sana，或输入计划、邮件、日程..."
+              style={{
+                flex: 1,
+                minWidth: 0,
+                background: "transparent",
+                border: "none",
+                outline: "none",
+                color: "white",
+                padding: "14px 4px",
+                fontSize: "15px",
+              }}
+            />
 
-          <button
-            onClick={generateCalendar}
-            style={{
-              background: "#1a1a1a",
-              border: "1px solid #2a2a2a",
-              color: "white",
-              padding: "0 16px",
-              borderRadius: "16px",
-              cursor: "pointer",
-              fontSize: "14px",
-            }}
-          >
-            日程
-          </button>
-
-          <input
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            placeholder="问 sana，或输入计划、邮件、日程..."
-            style={{
-              flex: 1,
-              background: "transparent",
-              border: "none",
-              outline: "none",
-              color: "white",
-              padding: "14px",
-              fontSize: "15px",
-              minWidth: 0,
-            }}
-          />
-
-          <button
-            onClick={sendMessage}
-            style={{
-              background: "white",
-              color: "black",
-              border: "none",
-              padding: "14px 22px",
-              borderRadius: "16px",
-              fontWeight: 500,
-              cursor: "pointer",
-            }}
-          >
-            发送
-          </button>
-        </div>
+            <button
+              onClick={sendMessage}
+              style={{
+                background: "white",
+                color: "black",
+                border: "none",
+                padding: "14px 20px",
+                borderRadius: "16px",
+                fontWeight: 560,
+                cursor: "pointer",
+                whiteSpace: "nowrap",
+              }}
+            >
+              发送
+            </button>
+          </div>
+        </section>
       </div>
     </main>
   );
 }
+
+const actionStyle: React.CSSProperties = {
+  background: "rgba(255,255,255,0.07)",
+  border: "1px solid rgba(255,255,255,0.12)",
+  color: "white",
+  padding: "13px 0",
+  borderRadius: "16px",
+  cursor: "pointer",
+  fontSize: "14px",
+};
