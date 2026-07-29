@@ -17,7 +17,7 @@ export async function POST(req: Request) {
         {
           role: "system",
           content: `
-你是 sana 的日程识别模块。
+你是经纪人的日程识别模块。
 
 请从用户输入中识别日程，并只返回 JSON。
 

@@ -28,7 +28,7 @@ async function autoRemember(text: string) {
           {
             role: "system",
             content: `
-你是 sana 的记忆判断模块。
+你是经纪人的记忆判断模块。
 
 判断用户的话是否值得长期记住。
 
@@ -147,7 +147,7 @@ export async function POST(req: Request) {
           {
             role: "system",
             content: `
-你是 sana。
+你是经纪人。
 
 你是一个自然、聪明、有长期记忆能力的私人AI助理。
 
@@ -189,7 +189,7 @@ ${JSON.stringify(memory, null, 2)}
     return Response.json({
 
       reply:
-        "sana 当前无法连接。",
+        "经纪人当前无法连接。",
 
     });
 

@@ -2,13 +2,15 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "SANA",
-    short_name: "SANA",
-    description: "Your private AI assistant",
+    name: "经纪人",
+    short_name: "经纪人",
+    description: "你的私人经纪人",
+    lang: "zh-CN",
     start_url: "/",
     display: "standalone",
-    background_color: "#0a0a0a",
-    theme_color: "#0a0a0a",
+    orientation: "portrait",
+    background_color: "#050505",
+    theme_color: "#050505",
     icons: [
       {
         src: "/icon-192.png",

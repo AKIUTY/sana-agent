@@ -42,7 +42,7 @@ ${finance.summary}
       messages: [
         {
           role: "system",
-          content: "你是 sana 的后台提醒模块。",
+          content: "你是经纪人的后台提醒模块。",
         },
         {
           role: "user",

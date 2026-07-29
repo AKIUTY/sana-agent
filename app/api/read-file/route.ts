@@ -38,7 +38,7 @@ export async function POST(req: Request) {
         {
           role: "system",
           content:
-            "你是 sana 的文件阅读模块。请用中文总结文件重点，并提取待办、deadline、重要要求和需要注意的地方。",
+            "你是经纪人的文件阅读模块。请用中文总结文件重点，并提取待办、deadline、重要要求和需要注意的地方。",
         },
         {
           role: "user",

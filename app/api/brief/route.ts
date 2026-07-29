@@ -47,7 +47,7 @@ ${finance.summary}
 未读邮件：
 ${unread.total} 封
 
-请生成一段像私人 AI 助理 sana 一样的中文今日总结。
+请生成一段像私人经纪人一样的中文今日总结。
 
 要求：
 - 第一行必须使用：${greeting}
@@ -62,7 +62,7 @@ ${unread.total} 封
       messages: [
         {
           role: "system",
-          content: "你是私人 AI 助理 sana。",
+          content: "你是私人经纪人。",
         },
         {
           role: "user",

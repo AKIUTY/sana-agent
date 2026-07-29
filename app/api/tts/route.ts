@@ -27,7 +27,7 @@ export async function POST(req: Request) {
   } catch {
     return Response.json({
       success: false,
-      error: "SANA voice failed.",
+      error: "经纪人 voice failed.",
     });
   }
 }

@@ -1,3 +1,14 @@
+:root {
+  /* Fallback for browsers without dvh support (older Samsung Internet) */
+  --app-height: 100vh;
+}
+
+@supports (height: 100dvh) {
+  :root {
+    --app-height: 100dvh;
+  }
+}
+
 html,
 body {
   margin: 0;
@@ -6,6 +17,13 @@ body {
   color: white;
   overflow-x: hidden;
   overscroll-behavior: none;
+  /* Stop Android/Samsung from auto-inflating font sizes in landscape */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  /* Robust CJK stack: Apple → Samsung/Android → Windows → generic */
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display",
+    "PingFang SC", "Noto Sans CJK SC", "Noto Sans SC", "Source Han Sans SC",
+    "Microsoft YaHei", "Segoe UI", Roboto, sans-serif;
 }
 
 * {
@@ -18,5 +36,15 @@ button {
 }
 
 button {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* Samsung Internet / Chrome on Android: keep inputs from zooming the page
+   on focus (needs >=16px font) and remove the default inner shadow. */
+input,
+textarea {
+  -webkit-appearance: none;
+  appearance: none;
   -webkit-tap-highlight-color: transparent;
 }

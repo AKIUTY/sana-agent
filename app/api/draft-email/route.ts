@@ -19,7 +19,7 @@ export async function POST(req: Request) {
             role: "system",
             content:
               `
-你是 sana 的邮件助手。
+你是经纪人的邮件助手。
 
 请根据用户要求生成：
 

@@ -22,7 +22,7 @@ export async function POST(req: Request) {
         {
           role: "system",
           content: `
-你是 sana 的记忆提取模块。
+你是经纪人的记忆提取模块。
 
 你的任务是判断用户说的话是否值得长期记住。
 

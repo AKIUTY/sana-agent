@@ -14,7 +14,7 @@ export async function POST(req: Request) {
         {
           role: "system",
           content: `
-你是 sana 的任务规划模块。
+你是经纪人的任务规划模块。
 
 用户会给你一个目标。
 

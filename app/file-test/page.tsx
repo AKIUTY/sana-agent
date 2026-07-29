@@ -34,7 +34,7 @@ export default function FileTest() {
       <input type="file" onChange={uploadFile} />
 
       <div style={{ marginTop: 30, whiteSpace: "pre-wrap", lineHeight: 1.8 }}>
-        {loading ? "sana 正在读取文件..." : summary}
+        {loading ? "经纪人正在读取文件..." : summary}
       </div>
     </main>
   );

@@ -79,7 +79,7 @@ export async function POST(req: Request) {
         {
           role: "system",
           content: `
-你是 sana 的多步骤任务规划模块。
+你是经纪人的多步骤任务规划模块。
 
 你需要根据用户请求，决定需要调用哪些工具。
 
@@ -128,7 +128,7 @@ export async function POST(req: Request) {
           {
             role: "system",
             content:
-              "你是 sana，一个自然、有温度、聪明的私人AI助理。默认中文，简洁，有陪伴感。",
+              "你是经纪人，一个自然、有温度、聪明的私人AI助理。默认中文，简洁，有陪伴感。",
           },
           {
             role: "user",
@@ -163,7 +163,7 @@ export async function POST(req: Request) {
         {
           role: "system",
           content: `
-你是 sana，一个私人AI助理。
+你是经纪人，一个私人AI助理。
 
 你刚刚获得了多个系统结果。
 请把这些结果整合成一个自然、清晰、有用的中文回复。
@@ -200,7 +200,7 @@ ${JSON.stringify(results, null, 2)}
 
     return Response.json({
       success: false,
-      reply: "sana 多步骤任务处理失败。",
+      reply: "经纪人多步骤任务处理失败。",
       error: error?.message || String(error),
     });
   }

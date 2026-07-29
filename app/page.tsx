@@ -91,9 +91,9 @@ export default function Home() {
       });
 
       const data = await res.json();
-      setReply(data.reply || "sana 没有返回内容。");
+      setReply(data.reply || "经纪人没有返回内容。");
     } catch {
-      setReply("sana 当前无法连接。");
+      setReply("经纪人当前无法连接。");
     }
 
     setMessage("");
@@ -197,6 +197,10 @@ export default function Home() {
   }
 
   async function startRecording() {
+    // Guard against Android/Samsung firing touchstart + synthetic mousedown,
+    // which would open two microphone streams.
+    if (recording || mediaRecorderRef.current?.state === "recording") return;
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
@@ -269,7 +273,7 @@ export default function Home() {
 
         <div style={styles.greetingBlock}>
           <div style={styles.greeting}>{greeting}</div>
-          <div style={styles.status}>sana 已在线。</div>
+          <div style={styles.status}>经纪人已上线。</div>
         </div>
 
         <section style={styles.card}>
@@ -284,10 +288,10 @@ export default function Home() {
         </section>
 
         <section style={styles.card}>
-          <div style={styles.label}>sana</div>
+          <div style={styles.label}>经纪人</div>
 
           <div style={styles.replyText}>
-            {loading ? "sana 正在处理…" : reply}
+            {loading ? "经纪人正在处理…" : reply}
           </div>
 
           <div style={styles.intentRow}>
@@ -342,7 +346,7 @@ export default function Home() {
                 ? "正在听…"
                 : transcribing
                 ? "正在识别…"
-                : "问 sana…"
+                : "问经纪人…"
             }
             style={styles.input}
           />
@@ -350,8 +354,14 @@ export default function Home() {
           <button
             onMouseDown={startRecording}
             onMouseUp={stopRecording}
-            onTouchStart={startRecording}
-            onTouchEnd={stopRecording}
+            onTouchStart={(e) => {
+              e.preventDefault();
+              startRecording();
+            }}
+            onTouchEnd={(e) => {
+              e.preventDefault();
+              stopRecording();
+            }}
             style={{
               ...styles.micButton,
               ...(recording ? styles.micButtonActive : {}),
@@ -385,13 +395,13 @@ const glass = {
 
 const styles: Record<string, React.CSSProperties> = {
   page: {
-    height: "100dvh",
+    height: "var(--app-height, 100dvh)",
+    minHeight: "var(--app-height, 100dvh)",
     overflow: "hidden",
     background: "#050505",
     color: "white",
     position: "relative",
-    fontFamily:
-      "-apple-system,BlinkMacSystemFont,'SF Pro Display','PingFang SC',sans-serif",
+    fontFamily: "inherit",
   },
 
   bgGlow: {

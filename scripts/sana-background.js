@@ -8,7 +8,7 @@ async function checkBackground() {
       await res.json();
 
     console.log(
-      "===== SANA BACKGROUND CHECK ====="
+      "===== 经纪人 BACKGROUND CHECK ====="
     );
 
     console.log(
@@ -26,7 +26,7 @@ async function checkBackground() {
   } catch {
 
     console.log(
-      "SANA background check failed."
+      "经纪人 background check failed."
     );
 
   }
