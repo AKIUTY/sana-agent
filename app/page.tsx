@@ -52,34 +52,41 @@ export default function Home() {
       else setGreeting("晚上好");
     }
 
-    async function loadDashboard() {
-      try {
-        const weatherRes = await fetch("/api/weather");
-        const weatherData = await weatherRes.json();
+    function loadDashboard() {
+      // Fire every card's data in parallel so one slow endpoint (e.g. the
+      // AI brief) never blocks the others from filling in.
+      fetch("/api/weather")
+        .then((r) => r.json())
+        .then((d) =>
+          setWeather(
+            `${d.city || "London"} · ${d.temperature ?? "?"}°C · ${
+              d.weather || "天气更新中"
+            }`
+          )
+        )
+        .catch(() => {});
 
-        setWeather(
-          `${weatherData.city || "London"} · ${
-            weatherData.temperature || "?"
-          }°C · ${weatherData.weather || "天气更新中"}`
-        );
+      fetch("/api/brief")
+        .then((r) => r.json())
+        .then((d) => setBrief(d.summary || "今日总结暂时无法生成。"))
+        .catch(() => setBrief("今日总结暂时无法生成。"));
 
-        const briefRes = await fetch("/api/brief");
-        const briefData = await briefRes.json();
+      fetch("/api/fitness")
+        .then((r) => r.json())
+        .then(setFitness)
+        .catch(() => {});
 
-        setBrief(briefData.summary || "今日总结暂时无法生成。");
+      fetch("/api/whoop")
+        .then((r) => r.json())
+        .then(setWhoop)
+        .catch(() => {});
 
-        const fitnessRes = await fetch("/api/fitness");
-        setFitness(await fitnessRes.json());
-
-        const whoopRes = await fetch("/api/whoop");
-        setWhoop(await whoopRes.json());
-
-        const dayRes = await fetch("/api/day");
-        const dayData = await dayRes.json();
-        if (dayData.schedule) setDaySchedule(dayData.schedule);
-      } catch {
-        setBrief("今日总结暂时无法生成。");
-      }
+      fetch("/api/day")
+        .then((r) => r.json())
+        .then((d) => {
+          if (d.schedule) setDaySchedule(d.schedule);
+        })
+        .catch(() => {});
     }
 
     const params = new URLSearchParams(window.location.search);
@@ -449,7 +456,11 @@ export default function Home() {
                   恢复度 {whoop.recovery ?? "—"}
                 </div>
               ) : (
-                <a href="/api/whoop/connect" style={styles.voicePill}>
+                <a
+                  href="/api/whoop/connect"
+                  role="button"
+                  style={styles.voicePill}
+                >
                   连接
                 </a>
               )}
@@ -500,13 +511,13 @@ export default function Home() {
 
             <div style={styles.intentRow}>
               <button onClick={fitnessCheckin} style={styles.intentButton}>
-                ○ 打卡
+  打卡
               </button>
               <button onClick={logWeight} style={styles.intentButton}>
-                ○ 记体重
+  记体重
               </button>
               <button onClick={coachReview} style={styles.intentButton}>
-                ○ 教练点评
+  教练点评
               </button>
             </div>
           </section>
@@ -521,13 +532,13 @@ export default function Home() {
 
           <div style={styles.intentRow}>
             <button onClick={summarizeEmails} style={styles.intentButton}>
-              ○ 邮件
+邮件
             </button>
             <button onClick={generateTasks} style={styles.intentButton}>
-              ○ 待办
+待办
             </button>
             <button onClick={generateCalendar} style={styles.intentButton}>
-              ○ 日程
+日程
             </button>
           </div>
         </section>
@@ -537,19 +548,19 @@ export default function Home() {
         {menuOpen && (
           <div style={styles.quickPanel}>
             <button onClick={summarizeEmails} style={styles.quickButton}>
-              ○ 总结邮件
+总结邮件
             </button>
             <button onClick={generateTasks} style={styles.quickButton}>
-              ○ 生成待办
+生成待办
             </button>
             <button onClick={generateCalendar} style={styles.quickButton}>
-              ○ 识别日程
+识别日程
             </button>
             <button onClick={planDay} style={styles.quickButton}>
-              ○ 安排一天
+安排一天
             </button>
             <button onClick={fitnessCheckin} style={styles.quickButton}>
-              ○ 健身打卡
+健身打卡
             </button>
           </div>
         )}
@@ -618,10 +629,8 @@ export default function Home() {
 }
 
 const glass = {
-  background: "rgba(255,255,255,0.055)",
-  backdropFilter: "blur(28px)",
-  WebkitBackdropFilter: "blur(28px)",
-  border: "1px solid rgba(255,255,255,0.1)",
+  background: "rgba(255,255,255,0.035)",
+  border: "1px solid rgba(255,255,255,0.08)",
 };
 
 const styles: Record<string, React.CSSProperties> = {
@@ -629,17 +638,18 @@ const styles: Record<string, React.CSSProperties> = {
     height: "var(--app-height, 100dvh)",
     minHeight: "var(--app-height, 100dvh)",
     overflow: "hidden",
-    background: "#050505",
-    color: "white",
+    background: "#0a0b0d",
+    color: "#f2f3f5",
     position: "relative",
     fontFamily: "inherit",
   },
 
   bgGlow: {
-    position: "absolute",
+    position: "fixed",
     inset: 0,
     background:
-      "radial-gradient(circle at 20% 0%, rgba(90,100,170,0.22), transparent 38%), radial-gradient(circle at 90% 20%, rgba(80,150,180,0.08), transparent 32%), #050505",
+      "radial-gradient(120% 70% at 50% -10%, rgba(96,112,140,0.10), transparent 60%), #0a0b0d",
+    pointerEvents: "none",
   },
 
   content: {
@@ -647,106 +657,122 @@ const styles: Record<string, React.CSSProperties> = {
     zIndex: 1,
     height: "100%",
     overflowY: "auto",
-    paddingLeft: 22,
-    paddingRight: 22,
-    paddingTop: "max(env(safe-area-inset-top), 30px)",
-    paddingBottom: 190,
+    WebkitOverflowScrolling: "touch",
+    overscrollBehaviorY: "contain",
+    paddingLeft: 20,
+    paddingRight: 20,
+    paddingTop: "max(env(safe-area-inset-top), 28px)",
+    paddingBottom: 172,
   },
 
   top: {
-    marginTop: 8,
+    marginTop: 6,
   },
 
   time: {
-    fontSize: "clamp(72px, 20vw, 104px)",
-    fontWeight: 900,
-    letterSpacing: -7,
-    lineHeight: 0.9,
+    fontSize: "clamp(52px, 15vw, 78px)",
+    fontWeight: 300,
+    letterSpacing: -1.5,
+    lineHeight: 1,
+    fontVariantNumeric: "tabular-nums",
   },
 
   meta: {
-    marginTop: 10,
-    color: "rgba(255,255,255,0.62)",
-    fontSize: 18,
-    fontWeight: 600,
+    marginTop: 7,
+    color: "rgba(233,236,241,0.5)",
+    fontSize: 13.5,
+    fontWeight: 500,
+    letterSpacing: 0.2,
   },
 
   greetingBlock: {
-    marginTop: 58,
+    marginTop: 40,
   },
 
   greeting: {
-    fontSize: "clamp(44px, 12vw, 66px)",
-    fontWeight: 900,
-    letterSpacing: -3,
-    lineHeight: 1,
+    fontSize: "clamp(28px, 7.5vw, 38px)",
+    fontWeight: 600,
+    letterSpacing: -0.4,
+    lineHeight: 1.12,
+    color: "#f2f3f5",
   },
 
   status: {
-    marginTop: 14,
-    color: "rgba(255,255,255,0.55)",
-    fontSize: 22,
-    fontWeight: 700,
+    marginTop: 10,
+    color: "rgba(233,236,241,0.42)",
+    fontSize: 14,
+    fontWeight: 500,
+    letterSpacing: 0.3,
   },
 
   card: {
     ...glass,
-    marginTop: 26,
-    borderRadius: 34,
-    padding: 24,
-    boxShadow: "0 20px 70px rgba(0,0,0,0.35)",
+    marginTop: 14,
+    borderRadius: 20,
+    padding: 20,
   },
 
   cardTop: {
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
-    gap: 14,
+    gap: 12,
   },
 
   label: {
-    color: "rgba(255,255,255,0.48)",
-    fontSize: 15,
-    fontWeight: 700,
+    color: "rgba(233,236,241,0.4)",
+    fontSize: 11,
+    fontWeight: 600,
+    letterSpacing: 1.6,
+    textTransform: "uppercase",
   },
 
   voicePill: {
-    ...glass,
-    color: "white",
+    background: "rgba(255,255,255,0.05)",
+    border: "1px solid rgba(255,255,255,0.09)",
+    color: "rgba(233,236,241,0.75)",
     borderRadius: 999,
-    padding: "10px 16px",
-    fontSize: 14,
-    fontWeight: 700,
+    padding: "8px 14px",
+    fontSize: 12.5,
+    fontWeight: 600,
+    letterSpacing: 0.3,
+    textDecoration: "none",
+    display: "inline-flex",
+    alignItems: "center",
   },
 
   briefText: {
-    marginTop: 24,
-    fontSize: "clamp(22px, 6vw, 30px)",
-    lineHeight: 1.35,
-    fontWeight: 800,
+    marginTop: 16,
+    fontSize: 16.5,
+    lineHeight: 1.62,
+    fontWeight: 500,
+    letterSpacing: 0.1,
+    color: "rgba(242,243,245,0.92)",
     whiteSpace: "pre-wrap",
   },
 
   scheduleText: {
-    marginTop: 20,
-    fontSize: 16,
-    lineHeight: 1.6,
-    fontWeight: 600,
+    marginTop: 16,
+    fontSize: 14.5,
+    lineHeight: 1.7,
+    fontWeight: 400,
     whiteSpace: "pre-wrap",
-    color: "rgba(255,255,255,0.9)",
+    color: "rgba(242,243,245,0.82)",
   },
 
   weekTag: {
-    color: "rgba(255,255,255,0.72)",
-    fontSize: 14,
-    fontWeight: 800,
+    color: "rgba(233,236,241,0.6)",
+    fontSize: 12.5,
+    fontWeight: 600,
+    letterSpacing: 0.3,
+    fontVariantNumeric: "tabular-nums",
   },
 
   progressTrack: {
-    marginTop: 18,
-    height: 10,
+    marginTop: 16,
+    height: 6,
     borderRadius: 999,
-    background: "rgba(255,255,255,0.1)",
+    background: "rgba(255,255,255,0.08)",
     overflow: "hidden",
   },
 
@@ -754,54 +780,59 @@ const styles: Record<string, React.CSSProperties> = {
     height: "100%",
     borderRadius: 999,
     background:
-      "linear-gradient(90deg, rgba(150,140,255,0.95), rgba(90,170,255,0.95))",
-    transition: "width 0.4s ease",
+      "linear-gradient(90deg, rgba(150,165,190,0.85), rgba(184,196,216,0.95))",
+    transition: "width 0.45s ease",
   },
 
   fitnessMeta: {
-    marginTop: 14,
-    color: "rgba(255,255,255,0.62)",
-    fontSize: 15,
-    fontWeight: 650,
+    marginTop: 12,
+    color: "rgba(233,236,241,0.5)",
+    fontSize: 13,
+    fontWeight: 500,
+    letterSpacing: 0.2,
   },
 
   replyText: {
-    marginTop: 18,
-    fontSize: "clamp(21px, 5.6vw, 30px)",
-    lineHeight: 1.45,
-    fontWeight: 760,
+    marginTop: 14,
+    fontSize: 16.5,
+    lineHeight: 1.62,
+    fontWeight: 500,
+    letterSpacing: 0.1,
+    color: "rgba(242,243,245,0.92)",
     whiteSpace: "pre-wrap",
   },
 
   intentRow: {
-    marginTop: 26,
+    marginTop: 18,
     display: "flex",
-    gap: 10,
+    gap: 8,
     flexWrap: "wrap",
   },
 
   intentButton: {
-    ...glass,
-    borderRadius: 999,
-    padding: "11px 17px",
-    color: "white",
-    fontSize: 15,
-    fontWeight: 700,
+    background: "rgba(255,255,255,0.04)",
+    border: "1px solid rgba(255,255,255,0.08)",
+    borderRadius: 12,
+    padding: "9px 15px",
+    color: "rgba(233,236,241,0.72)",
+    fontSize: 13,
+    fontWeight: 500,
+    letterSpacing: 0.2,
   },
 
   inputDock: {
     position: "fixed",
     zIndex: 10,
-    left: 14,
-    right: 14,
-    bottom: "max(env(safe-area-inset-bottom), 14px)",
-    borderRadius: 34,
-    padding: 12,
-    background: "rgba(12,12,14,0.86)",
-    backdropFilter: "blur(34px)",
-    WebkitBackdropFilter: "blur(34px)",
-    border: "1px solid rgba(255,255,255,0.12)",
-    boxShadow: "0 -24px 80px rgba(0,0,0,0.55)",
+    left: 12,
+    right: 12,
+    bottom: "max(env(safe-area-inset-bottom), 12px)",
+    borderRadius: 22,
+    padding: 10,
+    background: "rgba(14,15,18,0.72)",
+    backdropFilter: "blur(20px)",
+    WebkitBackdropFilter: "blur(20px)",
+    border: "1px solid rgba(255,255,255,0.08)",
+    boxShadow: "0 -12px 40px rgba(0,0,0,0.4)",
   },
 
   quickPanel: {
@@ -812,13 +843,15 @@ const styles: Record<string, React.CSSProperties> = {
   },
 
   quickButton: {
-    ...glass,
+    background: "rgba(255,255,255,0.05)",
+    border: "1px solid rgba(255,255,255,0.09)",
     whiteSpace: "nowrap",
-    color: "white",
+    color: "rgba(233,236,241,0.72)",
     borderRadius: 999,
-    padding: "10px 15px",
-    fontSize: 14,
-    fontWeight: 700,
+    padding: "9px 14px",
+    fontSize: 12.5,
+    fontWeight: 500,
+    letterSpacing: 0.2,
   },
 
   listenPanel: {
@@ -826,85 +859,92 @@ const styles: Record<string, React.CSSProperties> = {
     display: "flex",
     alignItems: "center",
     gap: 10,
-    borderRadius: 22,
-    padding: "12px 14px",
-    background:
-      "linear-gradient(135deg, rgba(150,140,255,0.18), rgba(90,170,255,0.08))",
-    border: "1px solid rgba(160,150,255,0.22)",
-    color: "rgba(230,232,255,0.95)",
-    fontWeight: 700,
+    borderRadius: 16,
+    padding: "11px 14px",
+    background: "rgba(255,255,255,0.04)",
+    border: "1px solid rgba(255,255,255,0.08)",
+    color: "rgba(233,236,241,0.7)",
+    fontSize: 14,
+    fontWeight: 500,
+    letterSpacing: 0.2,
   },
 
   listenOrb: {
-    width: 12,
-    height: 12,
+    width: 8,
+    height: 8,
     borderRadius: "50%",
-    background: "rgba(180,175,255,0.95)",
-    boxShadow: "0 0 22px rgba(150,140,255,0.8)",
+    background: "rgba(170,184,205,0.95)",
+    boxShadow: "0 0 12px rgba(150,165,190,0.7)",
   },
 
   inputRow: {
     display: "flex",
     alignItems: "center",
-    gap: 9,
+    gap: 8,
   },
 
   plusButton: {
-    width: 52,
-    height: 52,
-    borderRadius: 18,
-    border: "1px solid rgba(255,255,255,0.12)",
-    background: "rgba(255,255,255,0.06)",
-    color: "white",
-    fontSize: 28,
-    fontWeight: 500,
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    border: "1px solid rgba(255,255,255,0.09)",
+    background: "rgba(255,255,255,0.05)",
+    color: "rgba(233,236,241,0.8)",
+    fontSize: 24,
+    fontWeight: 400,
     flexShrink: 0,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
   },
 
   input: {
     flex: 1,
     minWidth: 0,
-    height: 52,
-    borderRadius: 18,
+    height: 48,
+    borderRadius: 14,
     border: "1px solid rgba(255,255,255,0.08)",
-    background: "rgba(255,255,255,0.045)",
-    color: "white",
+    background: "rgba(255,255,255,0.04)",
+    color: "#f2f3f5",
     outline: "none",
-    paddingLeft: 16,
-    paddingRight: 16,
-    fontSize: 17,
-    fontWeight: 650,
+    paddingLeft: 15,
+    paddingRight: 15,
+    fontSize: 16,
+    fontWeight: 500,
   },
 
   micButton: {
-    width: 52,
-    height: 52,
-    borderRadius: 18,
-    border: "1px solid rgba(255,255,255,0.12)",
-    background: "rgba(255,255,255,0.06)",
-    color: "white",
-    fontSize: 22,
-    fontWeight: 800,
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    border: "1px solid rgba(255,255,255,0.09)",
+    background: "rgba(255,255,255,0.05)",
+    color: "rgba(233,236,241,0.8)",
+    fontSize: 18,
+    fontWeight: 500,
     flexShrink: 0,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
   },
 
   micButtonActive: {
-    border: "1px solid rgba(165,155,255,0.7)",
-    background:
-      "radial-gradient(circle, rgba(150,140,255,0.32), rgba(255,255,255,0.06))",
-    boxShadow: "0 0 30px rgba(140,130,255,0.4)",
+    border: "1px solid rgba(160,175,200,0.6)",
+    background: "rgba(160,175,200,0.14)",
+    boxShadow: "0 0 0 4px rgba(160,175,200,0.10)",
+    color: "#f2f3f5",
   },
 
   sendButton: {
-    height: 52,
-    borderRadius: 18,
+    height: 48,
+    borderRadius: 14,
     border: "none",
-    background: "white",
-    color: "black",
-    paddingLeft: 17,
-    paddingRight: 17,
-    fontSize: 16,
-    fontWeight: 800,
+    background: "#f2f3f5",
+    color: "#0a0b0d",
+    paddingLeft: 16,
+    paddingRight: 16,
+    fontSize: 14.5,
+    fontWeight: 650,
     flexShrink: 0,
   },
 };
