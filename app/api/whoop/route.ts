@@ -1,13 +1,9 @@
+import { WHOOP_BASE, getValidAccessToken, isAuthorized } from "@/lib/whoop";
+
 export const dynamic = "force-dynamic";
 
-// WHOOP Developer API v2 — https://api.prod.whoop.com/developer
-// Requires an OAuth2 access token in the WHOOP_ACCESS_TOKEN env var.
-// Access tokens are short-lived (~1h); if it 401s we degrade gracefully
-// instead of inventing data.
-const BASE = "https://api.prod.whoop.com/developer";
-
 async function whoopGet(path: string, token: string) {
-  const res = await fetch(`${BASE}${path}`, {
+  const res = await fetch(`${WHOOP_BASE}${path}`, {
     headers: { Authorization: `Bearer ${token}` },
     cache: "no-store",
   });
@@ -17,10 +13,14 @@ async function whoopGet(path: string, token: string) {
 }
 
 export async function GET() {
-  const token = process.env.WHOOP_ACCESS_TOKEN;
+  const token = await getValidAccessToken();
 
   if (!token) {
-    return Response.json({ connected: false, reason: "no_token" });
+    return Response.json({
+      connected: false,
+      authorized: isAuthorized(),
+      reason: "no_token",
+    });
   }
 
   try {
@@ -37,6 +37,7 @@ export async function GET() {
     if (!r && !c && !s) {
       return Response.json({
         connected: false,
+        authorized: isAuthorized(),
         reason: "unauthorized_or_empty",
       });
     }
@@ -51,18 +52,35 @@ export async function GET() {
       else zone = "red";
     }
 
+    // WHOOP's own sleep recommendation, derived from the sleep_needed breakdown.
+    let recommendedSleepHours: number | null = null;
+    const sn = s?.sleep_needed;
+    if (sn) {
+      const totalMilli =
+        (sn.baseline_milli || 0) +
+        (sn.need_from_sleep_debt_milli || 0) +
+        (sn.need_from_recent_strain_milli || 0) -
+        (sn.need_from_recent_nap_milli || 0);
+      if (totalMilli > 0) {
+        recommendedSleepHours = Math.round((totalMilli / 3.6e6) * 10) / 10;
+      }
+    }
+
     return Response.json({
       connected: true,
+      authorized: true,
       recovery,
       zone,
       hrv: r?.hrv_rmssd_milli ?? null,
       restingHr: r?.resting_heart_rate ?? null,
       strain: c?.strain ?? null,
       sleepPerformance: s?.sleep_performance_percentage ?? null,
+      recommendedSleepHours,
     });
   } catch (error: any) {
     return Response.json({
       connected: false,
+      authorized: isAuthorized(),
       reason: "error",
       error: error?.message || String(error),
     });

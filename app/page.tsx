@@ -13,6 +13,7 @@ export default function Home() {
 
   const [daySchedule, setDaySchedule] = useState("");
   const [fitness, setFitness] = useState<any>(null);
+  const [whoop, setWhoop] = useState<any>(null);
 
   const [message, setMessage] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
@@ -70,12 +71,28 @@ export default function Home() {
         const fitnessRes = await fetch("/api/fitness");
         setFitness(await fitnessRes.json());
 
+        const whoopRes = await fetch("/api/whoop");
+        setWhoop(await whoopRes.json());
+
         const dayRes = await fetch("/api/day");
         const dayData = await dayRes.json();
         if (dayData.schedule) setDaySchedule(dayData.schedule);
       } catch {
         setBrief("今日总结暂时无法生成。");
       }
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    const whoopStatus = params.get("whoop");
+    if (whoopStatus === "connected") {
+      setReply("WHOOP 已连接。之后我会按你的恢复度和睡眠建议来排训练和作息。");
+    } else if (whoopStatus === "missing_client") {
+      setReply("还没配置 WHOOP 应用凭证（WHOOP_CLIENT_ID），连不了。");
+    } else if (whoopStatus) {
+      setReply("WHOOP 连接没成功，回头再试一次。");
+    }
+    if (whoopStatus) {
+      window.history.replaceState({}, "", "/");
     }
 
     updateClock();
@@ -410,6 +427,49 @@ export default function Home() {
               "今天还没安排。点右上角，让经纪人把你一天排明白。"}
           </div>
         </section>
+
+        {whoop && (
+          <section style={styles.card}>
+            <div style={styles.cardTop}>
+              <div style={styles.label}>WHOOP</div>
+              {whoop.connected ? (
+                <div
+                  style={{
+                    ...styles.weekTag,
+                    color:
+                      whoop.zone === "green"
+                        ? "#66d19e"
+                        : whoop.zone === "red"
+                        ? "#e06a6a"
+                        : whoop.zone === "yellow"
+                        ? "#e6c15a"
+                        : "rgba(255,255,255,0.72)",
+                  }}
+                >
+                  恢复度 {whoop.recovery ?? "—"}
+                </div>
+              ) : (
+                <a href="/api/whoop/connect" style={styles.voicePill}>
+                  连接
+                </a>
+              )}
+            </div>
+
+            <div style={styles.fitnessMeta}>
+              {whoop.connected
+                ? `strain ${whoop.strain ?? "—"} · 睡眠 ${
+                    whoop.sleepPerformance ?? "—"
+                  }%${
+                    whoop.recommendedSleepHours
+                      ? ` · 建议睡 ${whoop.recommendedSleepHours}h`
+                      : ""
+                  }`
+                : whoop.authorized
+                ? "已授权，正在等待数据同步…"
+                : "还没连接。连上后经纪人会按你的恢复度排训练强度。"}
+            </div>
+          </section>
+        )}
 
         {fitness && fitness.success !== false && (
           <section style={styles.card}>

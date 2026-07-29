@@ -24,6 +24,7 @@ const DAY_SYSTEM = `
 - 电脑游戏是奖励：有硬性上限，必须在完成学习和训练之后才允许，超时直接砍掉。
 - 训练安排：如果本周训练次数落后于每周 4 次的目标、且今天还没训练，今天就必须安排训练；
   但如果 WHOOP 恢复度低（red / 低于 34），改成休息或轻量主动恢复，绝不许硬练；恢复度高（green）就上强度。
+- 睡眠：如果 WHOOP 给出了建议睡眠时长，就按它倒推今晚的就寝时间（睡够为准），不要死守固定睡觉时间。
 - 每个时间块给出：时间段 + 【类别】标签 + 具体做什么。
 - 结尾用一句严厉的经纪人式命令收尾。
 
@@ -123,7 +124,11 @@ export async function POST(req: Request) {
     }。
 WHOOP：${
       whoop.connected
-        ? `恢复度 ${whoop.recovery}(${whoop.zone})，strain ${whoop.strain}，睡眠表现 ${whoop.sleepPerformance}%`
+        ? `恢复度 ${whoop.recovery}(${whoop.zone})，strain ${whoop.strain}，睡眠表现 ${whoop.sleepPerformance}%${
+            whoop.recommendedSleepHours
+              ? `，建议睡眠 ${whoop.recommendedSleepHours} 小时`
+              : ""
+          }`
         : "未连接（按正常状态安排，并提醒用户没有恢复度数据）"
     }
 天气：${weather ? `${weather.city} ${weather.temperature}°C ${weather.weather}` : "未知"}
