@@ -8,7 +8,7 @@ export default function Home() {
   const [greeting, setGreeting] = useState("早上好");
   const [weather, setWeather] = useState("London · 9°C · 多云");
 
-  const [brief, setBrief] = useState("今日总结生成中…");
+  const [brief, setBrief] = useState("");
   const [reply, setReply] = useState("今天想让我先处理什么？");
 
   const [daySchedule, setDaySchedule] = useState("");
@@ -18,13 +18,32 @@ export default function Home() {
   const [message, setMessage] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const [loading, setLoading] = useState(false);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
   const [speaking, setSpeaking] = useState(false);
   const [recording, setRecording] = useState(false);
   const [transcribing, setTranscribing] = useState(false);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function showToast(msg: string) {
+    setToast(msg);
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(null), 2600);
+  }
+
+  // What the reply card should say while a given action is running.
+  const busyText: Record<string, string> = {
+    agent: "经纪人正在处理…",
+    email: "正在读你的邮件…",
+    tasks: "正在整理今日待办…",
+    calendar: "正在识别日程…",
+    coach: "教练正在点评…",
+    checkin: "正在记录打卡…",
+    weight: "正在记录体重…",
+  };
 
   useEffect(() => {
     function updateClock() {
@@ -110,18 +129,18 @@ export default function Home() {
   }, []);
 
   async function sendMessage() {
-    if (!message.trim()) return;
+    if (!message.trim() || busy) return;
 
-    setLoading(true);
+    const sent = message;
+    setBusy("agent");
     setMenuOpen(false);
+    setMessage("");
 
     try {
       const res = await fetch("/api/agent", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ message }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: sent }),
       });
 
       const data = await res.json();
@@ -130,12 +149,12 @@ export default function Home() {
       setReply("经纪人当前无法连接。");
     }
 
-    setMessage("");
-    setLoading(false);
+    setBusy(null);
   }
 
   async function summarizeEmails() {
-    setLoading(true);
+    if (busy) return;
+    setBusy("email");
     setMenuOpen(false);
 
     try {
@@ -146,19 +165,18 @@ export default function Home() {
       setReply("无法读取邮件。");
     }
 
-    setLoading(false);
+    setBusy(null);
   }
 
   async function generateTasks() {
-    setLoading(true);
+    if (busy) return;
+    setBusy("tasks");
     setMenuOpen(false);
 
     try {
       const res = await fetch("/api/tasks", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           text: message || "根据今天的邮件和当前情况生成待办。",
         }),
@@ -166,30 +184,30 @@ export default function Home() {
 
       const data = await res.json();
       setReply(data.tasks || "今天暂无待办事项。");
+      showToast("待办已生成 ✓");
     } catch {
       setReply("今日待办生成失败。");
     }
 
     setMessage("");
-    setLoading(false);
+    setBusy(null);
   }
 
   async function generateCalendar() {
+    if (busy) return;
     if (!message.trim()) {
       setReply("先输入一段日程，例如：明天下午三点开会。");
       setMenuOpen(false);
       return;
     }
 
-    setLoading(true);
+    setBusy("calendar");
     setMenuOpen(false);
 
     try {
       const res = await fetch("/api/calendar", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: message }),
       });
 
@@ -200,96 +218,113 @@ export default function Home() {
     }
 
     setMessage("");
-    setLoading(false);
+    setBusy(null);
   }
 
   async function planDay() {
-    setLoading(true);
+    if (busy) return;
+    setBusy("day");
     setMenuOpen(false);
 
     try {
       const res = await fetch("/api/day", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ notes: message }),
       });
 
       const data = await res.json();
-      setDaySchedule(data.schedule || "今日行程生成失败。");
+      if (data.success !== false && data.schedule) {
+        setDaySchedule(data.schedule);
+        showToast("今日行程已更新 ✓");
+      } else {
+        setDaySchedule("今日行程生成失败。");
+        showToast("行程没排成，稍后再试");
+      }
     } catch {
       setDaySchedule("今日行程生成失败。");
+      showToast("行程没排成，稍后再试");
     }
 
     setMessage("");
-    setLoading(false);
+    setBusy(null);
   }
 
   async function fitnessCheckin() {
-    setLoading(true);
+    if (busy) return;
+    setBusy("checkin");
     setMenuOpen(false);
 
     try {
       const res = await fetch("/api/fitness", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "checkin", note: message }),
       });
 
       const data = await res.json();
       setReply(data.reply || "打卡失败。");
-      if (data.success) setFitness(data);
+      if (data.success) {
+        setFitness(data);
+        showToast(`已打卡 ✓ 本周 ${data.weekDone}/${data.weeklyTarget}`);
+      } else {
+        showToast("打卡没成功，稍后再试");
+      }
     } catch {
       setReply("打卡失败。");
+      showToast("打卡没成功，稍后再试");
     }
 
     setMessage("");
-    setLoading(false);
+    setBusy(null);
   }
 
   async function logWeight() {
+    if (busy) return;
     if (!message.trim()) {
       setReply("先在输入框里写今天的体重，例如 72.5。");
       setMenuOpen(false);
       return;
     }
 
-    setLoading(true);
+    setBusy("weight");
     setMenuOpen(false);
 
     try {
       const res = await fetch("/api/fitness", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "weight", kg: message }),
       });
 
       const data = await res.json();
       setReply(data.reply || "体重记录失败。");
-      if (data.success) setFitness(data);
+      if (data.success) {
+        setFitness(data);
+        showToast(
+          `体重已记录${data.lastWeight ? ` ${data.lastWeight.kg}kg` : ""} ✓`
+        );
+      } else {
+        showToast("体重没记上，检查一下数字");
+      }
     } catch {
       setReply("体重记录失败。");
+      showToast("体重没记上，稍后再试");
     }
 
     setMessage("");
-    setLoading(false);
+    setBusy(null);
   }
 
   async function coachReview() {
-    setLoading(true);
+    if (busy) return;
+    setBusy("coach");
     setMenuOpen(false);
 
     try {
       const res = await fetch("/api/fitness", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "coach" }),
       });
 
@@ -300,7 +335,7 @@ export default function Home() {
       setReply("教练暂时没空。");
     }
 
-    setLoading(false);
+    setBusy(null);
   }
 
   async function speakText(text: string) {
@@ -394,6 +429,19 @@ export default function Home() {
     }
   }
 
+  const skeletonLines = (n: number) =>
+    Array.from({ length: n }).map((_, i) => (
+      <div
+        key={i}
+        className="cc-skel"
+        style={{
+          height: 13,
+          marginTop: i === 0 ? 16 : 10,
+          width: i === n - 1 ? "55%" : "100%",
+        }}
+      />
+    ));
+
   return (
     <main style={styles.page}>
       <div style={styles.bgGlow} />
@@ -410,62 +458,88 @@ export default function Home() {
           <div style={styles.status}>经纪人已上线。</div>
         </div>
 
-        <section style={styles.card}>
+        <section style={{ ...styles.card, animationDelay: "40ms" }} className="cc-enter">
           <div style={styles.cardTop}>
             <div style={styles.label}>今日总结</div>
-            <button onClick={() => speakText(brief)} style={styles.voicePill}>
-              {speaking ? "朗读中" : "Voice"}
+            <button
+              onClick={() => speakText(brief)}
+              disabled={!brief || speaking}
+              style={styles.voicePill}
+            >
+              {speaking ? "朗读中…" : "Voice"}
             </button>
           </div>
 
-          <div style={styles.briefText}>{brief}</div>
+          {brief ? (
+            <div key={brief} style={styles.briefText} className="cc-fade">
+              {brief}
+            </div>
+          ) : (
+            <div>{skeletonLines(2)}</div>
+          )}
         </section>
 
-        <section style={styles.card}>
+        <section style={{ ...styles.card, animationDelay: "80ms" }} className="cc-enter">
           <div style={styles.cardTop}>
             <div style={styles.label}>今日行程</div>
-            <button onClick={planDay} style={styles.voicePill}>
-              {daySchedule ? "重排" : "安排"}
+            <button
+              onClick={planDay}
+              disabled={busy !== null}
+              style={styles.voicePill}
+            >
+              {busy === "day" ? (
+                <span className="cc-spin" />
+              ) : daySchedule ? (
+                "重排"
+              ) : (
+                "安排"
+              )}
             </button>
           </div>
 
-          <div style={styles.scheduleText}>
-            {daySchedule ||
-              "今天还没安排。点右上角，让经纪人把你一天排明白。"}
-          </div>
+          {busy === "day" ? (
+            <div style={styles.scheduleText}>正在把你今天排明白…</div>
+          ) : (
+            <div key={daySchedule} style={styles.scheduleText} className="cc-fade">
+              {daySchedule ||
+                "今天还没安排。点右上角，让经纪人把你一天排明白。"}
+            </div>
+          )}
         </section>
 
-        {whoop && (
-          <section style={styles.card}>
-            <div style={styles.cardTop}>
-              <div style={styles.label}>WHOOP</div>
-              {whoop.connected ? (
-                <div
-                  style={{
-                    ...styles.weekTag,
-                    color:
-                      whoop.zone === "green"
-                        ? "#66d19e"
-                        : whoop.zone === "red"
-                        ? "#e06a6a"
-                        : whoop.zone === "yellow"
-                        ? "#e6c15a"
-                        : "rgba(255,255,255,0.72)",
-                  }}
-                >
-                  恢复度 {whoop.recovery ?? "—"}
-                </div>
-              ) : (
-                <a
-                  href="/api/whoop/connect"
-                  role="button"
-                  style={styles.voicePill}
-                >
-                  连接
-                </a>
-              )}
-            </div>
+        <section style={{ ...styles.card, animationDelay: "120ms" }} className="cc-enter">
+          <div style={styles.cardTop}>
+            <div style={styles.label}>WHOOP</div>
+            {whoop?.connected ? (
+              <div
+                style={{
+                  ...styles.weekTag,
+                  color:
+                    whoop.zone === "green"
+                      ? "#7fb8a0"
+                      : whoop.zone === "red"
+                      ? "#cf8a8a"
+                      : whoop.zone === "yellow"
+                      ? "#cbb27e"
+                      : "rgba(233,236,241,0.6)",
+                }}
+              >
+                恢复度 {whoop.recovery ?? "—"}
+              </div>
+            ) : whoop ? (
+              <a
+                href="/api/whoop/connect"
+                role="button"
+                style={styles.voicePill}
+              >
+                连接
+              </a>
+            ) : null}
+          </div>
 
+          {!whoop ? (
+            <div>{skeletonLines(1)}</div>
+          ) : (
             <div style={styles.fitnessMeta}>
               {whoop.connected
                 ? `strain ${whoop.strain ?? "—"} · 睡眠 ${
@@ -479,66 +553,104 @@ export default function Home() {
                 ? "已授权，正在等待数据同步…"
                 : "还没连接。连上后经纪人会按你的恢复度排训练强度。"}
             </div>
-          </section>
-        )}
+          )}
+        </section>
 
-        {fitness && fitness.success !== false && (
-          <section style={styles.card}>
-            <div style={styles.cardTop}>
-              <div style={styles.label}>健身 · 减脂</div>
+        <section style={{ ...styles.card, animationDelay: "160ms" }} className="cc-enter">
+          <div style={styles.cardTop}>
+            <div style={styles.label}>健身 · 减脂</div>
+            {fitness && fitness.success !== false ? (
               <div style={styles.weekTag}>
                 本周 {fitness.weekDone ?? 0}/{fitness.weeklyTarget ?? 4}
               </div>
-            </div>
+            ) : null}
+          </div>
 
-            <div style={styles.progressTrack}>
-              <div
-                style={{
-                  ...styles.progressFill,
-                  width: `${Math.min(
-                    100,
-                    ((fitness.weekDone || 0) / (fitness.weeklyTarget || 4)) * 100
-                  )}%`,
-                }}
-              />
-            </div>
+          {!fitness ? (
+            <div>{skeletonLines(2)}</div>
+          ) : fitness.success === false ? (
+            <div style={styles.fitnessMeta}>健身数据暂时读取不了。</div>
+          ) : (
+            <>
+              <div style={styles.progressTrack}>
+                <div
+                  style={{
+                    ...styles.progressFill,
+                    width: `${Math.min(
+                      100,
+                      ((fitness.weekDone || 0) /
+                        (fitness.weeklyTarget || 4)) *
+                        100
+                    )}%`,
+                  }}
+                />
+              </div>
 
-            <div style={styles.fitnessMeta}>
-              {fitness.trainedToday ? "今天已训练 ✓" : "今天还没练"} · 还差{" "}
-              {fitness.remaining ?? 0} 次 · 剩 {fitness.daysLeftInWeek ?? 0} 天
-              {fitness.lastWeight ? ` · ${fitness.lastWeight.kg}kg` : ""}
-            </div>
+              <div style={styles.fitnessMeta}>
+                {fitness.trainedToday ? "今天已训练 ✓" : "今天还没练"} · 还差{" "}
+                {fitness.remaining ?? 0} 次 · 剩 {fitness.daysLeftInWeek ?? 0} 天
+                {fitness.lastWeight ? ` · ${fitness.lastWeight.kg}kg` : ""}
+              </div>
 
-            <div style={styles.intentRow}>
-              <button onClick={fitnessCheckin} style={styles.intentButton}>
-  打卡
-              </button>
-              <button onClick={logWeight} style={styles.intentButton}>
-  记体重
-              </button>
-              <button onClick={coachReview} style={styles.intentButton}>
-  教练点评
-              </button>
-            </div>
-          </section>
-        )}
+              <div style={styles.intentRow}>
+                <button
+                  onClick={fitnessCheckin}
+                  disabled={busy !== null}
+                  style={styles.intentButton}
+                >
+                  {busy === "checkin" ? <span className="cc-spin" /> : "打卡"}
+                </button>
+                <button
+                  onClick={logWeight}
+                  disabled={busy !== null}
+                  style={styles.intentButton}
+                >
+                  {busy === "weight" ? <span className="cc-spin" /> : "记体重"}
+                </button>
+                <button
+                  onClick={coachReview}
+                  disabled={busy !== null}
+                  style={styles.intentButton}
+                >
+                  {busy === "coach" ? <span className="cc-spin" /> : "教练点评"}
+                </button>
+              </div>
+            </>
+          )}
+        </section>
 
-        <section style={styles.card}>
+        <section style={{ ...styles.card, animationDelay: "200ms" }} className="cc-enter">
           <div style={styles.label}>经纪人</div>
 
-          <div style={styles.replyText}>
-            {loading ? "经纪人正在处理…" : reply}
+          <div
+            key={busy && busyText[busy] ? busy : reply}
+            style={styles.replyText}
+            className="cc-fade"
+          >
+            {busy && busyText[busy] ? busyText[busy] : reply}
           </div>
 
           <div style={styles.intentRow}>
-            <button onClick={summarizeEmails} style={styles.intentButton}>
-邮件
+            <button
+              onClick={summarizeEmails}
+              disabled={busy !== null}
+              style={styles.intentButton}
+            >
+              {busy === "email" ? <span className="cc-spin" /> : "邮件"}
             </button>
-            <button onClick={generateTasks} style={styles.intentButton}>
-待办
+            <button
+              onClick={generateTasks}
+              disabled={busy !== null}
+              style={styles.intentButton}
+            >
+              {busy === "tasks" ? <span className="cc-spin" /> : "待办"}
             </button>
-            <button onClick={generateCalendar} style={styles.intentButton}>
-日程
+            <button
+              onClick={generateCalendar}
+              disabled={busy !== null}
+              style={styles.intentButton}
+            >
+              {busy === "calendar" ? <span className="cc-spin" /> : "日程"}
             </button>
           </div>
         </section>
@@ -547,20 +659,40 @@ export default function Home() {
       <section style={styles.inputDock}>
         {menuOpen && (
           <div style={styles.quickPanel}>
-            <button onClick={summarizeEmails} style={styles.quickButton}>
-总结邮件
+            <button
+              onClick={summarizeEmails}
+              disabled={busy !== null}
+              style={styles.quickButton}
+            >
+              总结邮件
             </button>
-            <button onClick={generateTasks} style={styles.quickButton}>
-生成待办
+            <button
+              onClick={generateTasks}
+              disabled={busy !== null}
+              style={styles.quickButton}
+            >
+              生成待办
             </button>
-            <button onClick={generateCalendar} style={styles.quickButton}>
-识别日程
+            <button
+              onClick={generateCalendar}
+              disabled={busy !== null}
+              style={styles.quickButton}
+            >
+              识别日程
             </button>
-            <button onClick={planDay} style={styles.quickButton}>
-安排一天
+            <button
+              onClick={planDay}
+              disabled={busy !== null}
+              style={styles.quickButton}
+            >
+              安排一天
             </button>
-            <button onClick={fitnessCheckin} style={styles.quickButton}>
-健身打卡
+            <button
+              onClick={fitnessCheckin}
+              disabled={busy !== null}
+              style={styles.quickButton}
+            >
+              健身打卡
             </button>
           </div>
         )}
@@ -614,16 +746,22 @@ export default function Home() {
 
           <button
             onClick={sendMessage}
-            disabled={!message.trim() || loading}
+            disabled={!message.trim() || busy !== null}
             style={{
               ...styles.sendButton,
-              opacity: message.trim() ? 1 : 0.35,
+              opacity: message.trim() && busy === null ? 1 : 0.4,
             }}
           >
-            发送
+            {busy === "agent" ? <span className="cc-spin" /> : "发送"}
           </button>
         </div>
       </section>
+
+      {toast && (
+        <div style={styles.toast} className="cc-fade">
+          {toast}
+        </div>
+      )}
     </main>
   );
 }
@@ -946,5 +1084,28 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 14.5,
     fontWeight: 650,
     flexShrink: 0,
+  },
+
+  toast: {
+    position: "fixed",
+    zIndex: 20,
+    left: "50%",
+    transform: "translateX(-50%)",
+    bottom: "calc(env(safe-area-inset-bottom, 0px) + 88px)",
+    maxWidth: "calc(100% - 40px)",
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    padding: "11px 18px",
+    borderRadius: 999,
+    background: "rgba(28,30,34,0.92)",
+    backdropFilter: "blur(16px)",
+    WebkitBackdropFilter: "blur(16px)",
+    border: "1px solid rgba(255,255,255,0.1)",
+    color: "#f2f3f5",
+    fontSize: 13.5,
+    fontWeight: 600,
+    letterSpacing: 0.3,
+    boxShadow: "0 8px 30px rgba(0,0,0,0.45)",
   },
 };
