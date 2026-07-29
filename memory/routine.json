@@ -1,0 +1,11 @@
+{
+  "wake": "08:30",
+  "sleep": "00:30",
+  "studyHoursPerDay": 4,
+  "gamingCapHours": 2,
+  "fixed": [],
+  "notes": "",
+  "style": "strict",
+  "todaySchedule": null,
+  "scheduleDate": null
+}

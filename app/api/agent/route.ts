@@ -11,6 +11,8 @@ type ToolName =
   | "brief"
   | "finance"
   | "weather"
+  | "fitness"
+  | "day"
   | "chat";
 
 async function callTool(baseUrl: string, tool: ToolName, input: string) {
@@ -64,6 +66,30 @@ async function callTool(baseUrl: string, tool: ToolName, input: string) {
     return `${data.city} · ${data.temperature}°C · ${data.weather}`;
   }
 
+  if (tool === "fitness") {
+    const res = await fetch(`${baseUrl}/api/fitness`);
+    const data = await res.json();
+    if (!data.success) return "健身数据暂时读取不了。";
+    return `减脂计划：本周已训练 ${data.weekDone}/${data.weeklyTarget} 次，还差 ${data.remaining} 次，本周还剩 ${data.daysLeftInWeek} 天，${
+      data.onTrack ? "进度还跟得上" : "已经落后"
+    }；今天${data.trainedToday ? "已训练" : "还没训练"}；最近体重：${
+      data.lastWeight ? `${data.lastWeight.kg}kg` : "无记录"
+    }。`;
+  }
+
+  if (tool === "day") {
+    const res = await fetch(`${baseUrl}/api/day`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ notes: input }),
+    });
+
+    const data = await res.json();
+    return data.schedule || "今日行程生成失败。";
+  }
+
   return "无需调用工具。";
 }
 
@@ -90,14 +116,18 @@ export async function POST(req: Request) {
 - brief：生成今日总结
 - finance：获取财经摘要
 - weather：获取天气
+- fitness：查看减脂 / 健身进度（本周训练次数、体重、是否落后）
+- day：把用户的一整天排成时间块表（学习、健身、吃饭、休息、电脑游戏、社交）
 - chat：普通聊天
 
 规则：
 1. 可以选择多个工具。
 2. 如果用户说“帮我准备今天/明天/下周”，通常需要 brief、email_summary、tasks、calendar。
-3. 如果用户只是聊天，就只用 chat。
-4. 不要选择发送邮件、写入日历这种高风险动作。
-5. 只返回 JSON，不要解释。
+3. 如果用户提到健身、训练、减脂、练了没、体重，选 fitness。
+4. 如果用户说“安排我今天/一天”“帮我规划一天”“我的时间怎么安排”，选 day（通常也配合 fitness）。
+5. 如果用户只是聊天，就只用 chat。
+6. 不要选择发送邮件、写入日历这种高风险动作。
+7. 只返回 JSON，不要解释。
 
 返回格式：
 {

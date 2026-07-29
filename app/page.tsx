@@ -11,6 +11,9 @@ export default function Home() {
   const [brief, setBrief] = useState("今日总结生成中…");
   const [reply, setReply] = useState("今天想让我先处理什么？");
 
+  const [daySchedule, setDaySchedule] = useState("");
+  const [fitness, setFitness] = useState<any>(null);
+
   const [message, setMessage] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -63,6 +66,13 @@ export default function Home() {
         const briefData = await briefRes.json();
 
         setBrief(briefData.summary || "今日总结暂时无法生成。");
+
+        const fitnessRes = await fetch("/api/fitness");
+        setFitness(await fitnessRes.json());
+
+        const dayRes = await fetch("/api/day");
+        const dayData = await dayRes.json();
+        if (dayData.schedule) setDaySchedule(dayData.schedule);
       } catch {
         setBrief("今日总结暂时无法生成。");
       }
@@ -166,6 +176,106 @@ export default function Home() {
     }
 
     setMessage("");
+    setLoading(false);
+  }
+
+  async function planDay() {
+    setLoading(true);
+    setMenuOpen(false);
+
+    try {
+      const res = await fetch("/api/day", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ notes: message }),
+      });
+
+      const data = await res.json();
+      setDaySchedule(data.schedule || "今日行程生成失败。");
+    } catch {
+      setDaySchedule("今日行程生成失败。");
+    }
+
+    setMessage("");
+    setLoading(false);
+  }
+
+  async function fitnessCheckin() {
+    setLoading(true);
+    setMenuOpen(false);
+
+    try {
+      const res = await fetch("/api/fitness", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ action: "checkin", note: message }),
+      });
+
+      const data = await res.json();
+      setReply(data.reply || "打卡失败。");
+      if (data.success) setFitness(data);
+    } catch {
+      setReply("打卡失败。");
+    }
+
+    setMessage("");
+    setLoading(false);
+  }
+
+  async function logWeight() {
+    if (!message.trim()) {
+      setReply("先在输入框里写今天的体重，例如 72.5。");
+      setMenuOpen(false);
+      return;
+    }
+
+    setLoading(true);
+    setMenuOpen(false);
+
+    try {
+      const res = await fetch("/api/fitness", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ action: "weight", kg: message }),
+      });
+
+      const data = await res.json();
+      setReply(data.reply || "体重记录失败。");
+      if (data.success) setFitness(data);
+    } catch {
+      setReply("体重记录失败。");
+    }
+
+    setMessage("");
+    setLoading(false);
+  }
+
+  async function coachReview() {
+    setLoading(true);
+    setMenuOpen(false);
+
+    try {
+      const res = await fetch("/api/fitness", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ action: "coach" }),
+      });
+
+      const data = await res.json();
+      setReply(data.reply || "教练暂时没空。");
+      if (data.success) setFitness(data);
+    } catch {
+      setReply("教练暂时没空。");
+    }
+
     setLoading(false);
   }
 
@@ -288,6 +398,61 @@ export default function Home() {
         </section>
 
         <section style={styles.card}>
+          <div style={styles.cardTop}>
+            <div style={styles.label}>今日行程</div>
+            <button onClick={planDay} style={styles.voicePill}>
+              {daySchedule ? "重排" : "安排"}
+            </button>
+          </div>
+
+          <div style={styles.scheduleText}>
+            {daySchedule ||
+              "今天还没安排。点右上角，让经纪人把你一天排明白。"}
+          </div>
+        </section>
+
+        {fitness && fitness.success !== false && (
+          <section style={styles.card}>
+            <div style={styles.cardTop}>
+              <div style={styles.label}>健身 · 减脂</div>
+              <div style={styles.weekTag}>
+                本周 {fitness.weekDone ?? 0}/{fitness.weeklyTarget ?? 4}
+              </div>
+            </div>
+
+            <div style={styles.progressTrack}>
+              <div
+                style={{
+                  ...styles.progressFill,
+                  width: `${Math.min(
+                    100,
+                    ((fitness.weekDone || 0) / (fitness.weeklyTarget || 4)) * 100
+                  )}%`,
+                }}
+              />
+            </div>
+
+            <div style={styles.fitnessMeta}>
+              {fitness.trainedToday ? "今天已训练 ✓" : "今天还没练"} · 还差{" "}
+              {fitness.remaining ?? 0} 次 · 剩 {fitness.daysLeftInWeek ?? 0} 天
+              {fitness.lastWeight ? ` · ${fitness.lastWeight.kg}kg` : ""}
+            </div>
+
+            <div style={styles.intentRow}>
+              <button onClick={fitnessCheckin} style={styles.intentButton}>
+                ○ 打卡
+              </button>
+              <button onClick={logWeight} style={styles.intentButton}>
+                ○ 记体重
+              </button>
+              <button onClick={coachReview} style={styles.intentButton}>
+                ○ 教练点评
+              </button>
+            </div>
+          </section>
+        )}
+
+        <section style={styles.card}>
           <div style={styles.label}>经纪人</div>
 
           <div style={styles.replyText}>
@@ -319,6 +484,12 @@ export default function Home() {
             </button>
             <button onClick={generateCalendar} style={styles.quickButton}>
               ○ 识别日程
+            </button>
+            <button onClick={planDay} style={styles.quickButton}>
+              ○ 安排一天
+            </button>
+            <button onClick={fitnessCheckin} style={styles.quickButton}>
+              ○ 健身打卡
             </button>
           </div>
         )}
@@ -494,6 +665,44 @@ const styles: Record<string, React.CSSProperties> = {
     lineHeight: 1.35,
     fontWeight: 800,
     whiteSpace: "pre-wrap",
+  },
+
+  scheduleText: {
+    marginTop: 20,
+    fontSize: 16,
+    lineHeight: 1.6,
+    fontWeight: 600,
+    whiteSpace: "pre-wrap",
+    color: "rgba(255,255,255,0.9)",
+  },
+
+  weekTag: {
+    color: "rgba(255,255,255,0.72)",
+    fontSize: 14,
+    fontWeight: 800,
+  },
+
+  progressTrack: {
+    marginTop: 18,
+    height: 10,
+    borderRadius: 999,
+    background: "rgba(255,255,255,0.1)",
+    overflow: "hidden",
+  },
+
+  progressFill: {
+    height: "100%",
+    borderRadius: 999,
+    background:
+      "linear-gradient(90deg, rgba(150,140,255,0.95), rgba(90,170,255,0.95))",
+    transition: "width 0.4s ease",
+  },
+
+  fitnessMeta: {
+    marginTop: 14,
+    color: "rgba(255,255,255,0.62)",
+    fontSize: 15,
+    fontWeight: 650,
   },
 
   replyText: {
