@@ -13,15 +13,16 @@ html,
 body {
   margin: 0;
   padding: 0;
-  background: #050505;
-  color: white;
+  background: #0a0b0d;
+  color: #f2f3f5;
   overflow-x: hidden;
   overscroll-behavior: none;
-  /* Stop Android/Samsung from auto-inflating font sizes in landscape */
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
-  /* Robust CJK stack: Apple → Samsung/Android → Windows → generic */
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display",
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* Cool, refined CJK stack: Apple → Samsung/Android → Windows → generic */
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text",
     "PingFang SC", "Noto Sans CJK SC", "Noto Sans SC", "Source Han Sans SC",
     "Microsoft YaHei", "Segoe UI", Roboto, sans-serif;
 }
@@ -31,20 +32,117 @@ body {
 }
 
 input,
-button {
+button,
+a {
   font-family: inherit;
 }
 
-button {
+button,
+a {
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
 }
 
-/* Samsung Internet / Chrome on Android: keep inputs from zooming the page
-   on focus (needs >=16px font) and remove the default inner shadow. */
+/* Universal, cheap press feedback — keeps interactions feeling responsive
+   without per-element JS state. */
+button,
+a[role="button"] {
+  transition: transform 0.14s ease, opacity 0.14s ease,
+    background 0.18s ease, border-color 0.18s ease;
+}
+
+button:active,
+a[role="button"]:active {
+  transform: scale(0.97);
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
 input,
 textarea {
   -webkit-appearance: none;
   appearance: none;
   -webkit-tap-highlight-color: transparent;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: rgba(233, 236, 241, 0.35);
+}
+
+/* Slim, cool scrollbars on desktop; mobile hides them natively. */
+*::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+@keyframes cc-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes cc-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+@keyframes cc-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Cards ease in instead of popping */
+.cc-enter {
+  animation: cc-fade-up 0.42s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
+/* Result text cross-fades when it changes */
+.cc-fade {
+  animation: cc-fade-up 0.28s ease both;
+}
+
+/* Loading placeholder shimmer */
+.cc-skel {
+  border-radius: 7px;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.04) 25%,
+    rgba(255, 255, 255, 0.09) 37%,
+    rgba(255, 255, 255, 0.04) 63%
+  );
+  background-size: 200% 100%;
+  animation: cc-shimmer 1.5s ease-in-out infinite;
+}
+
+/* Inline spinner for in-flight buttons */
+.cc-spin {
+  display: inline-block;
+  width: 13px;
+  height: 13px;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  border-top-color: rgba(242, 243, 245, 0.9);
+  border-radius: 50%;
+  animation: cc-spin 0.7s linear infinite;
+  vertical-align: -2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }
