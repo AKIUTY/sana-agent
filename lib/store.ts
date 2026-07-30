@@ -19,8 +19,36 @@ function findEnv(suffixes: string[]): string {
   return "";
 }
 
-const KV_URL = findEnv(["KV_REST_API_URL", "UPSTASH_REDIS_REST_URL"]);
-const KV_TOKEN = findEnv(["KV_REST_API_TOKEN", "UPSTASH_REDIS_REST_TOKEN"]);
+// Upstash exposes both a REST API (url + token) and a redis:// connection
+// string. Vercel's integration may inject only the latter (REDIS_URL / KV_URL),
+// so derive the REST credentials from it: the REST host is the same host over
+// https, and the REST token is the connection password.
+function deriveFromRedisUrl(): { url: string; token: string } | null {
+  for (const value of Object.values(process.env)) {
+    if (!value) continue;
+    if (value.startsWith("rediss://") || value.startsWith("redis://")) {
+      try {
+        const u = new URL(value);
+        const token = decodeURIComponent(u.password || "");
+        if (u.hostname && token) return { url: `https://${u.hostname}`, token };
+      } catch {
+        // ignore malformed values
+      }
+    }
+  }
+  return null;
+}
+
+let KV_URL = findEnv(["KV_REST_API_URL", "UPSTASH_REDIS_REST_URL"]);
+let KV_TOKEN = findEnv(["KV_REST_API_TOKEN", "UPSTASH_REDIS_REST_TOKEN"]);
+
+if (!KV_URL || !KV_TOKEN) {
+  const derived = deriveFromRedisUrl();
+  if (derived) {
+    KV_URL = KV_URL || derived.url;
+    KV_TOKEN = KV_TOKEN || derived.token;
+  }
+}
 
 export const storeBackend: "kv" | "file" = KV_URL && KV_TOKEN ? "kv" : "file";
 
