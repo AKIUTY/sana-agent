@@ -458,28 +458,31 @@ export default function Home() {
           <div style={styles.status}>经纪人已上线。</div>
         </div>
 
-        <section style={{ ...styles.card, animationDelay: "40ms" }} className="cc-enter">
-          <div style={styles.cardTop}>
-            <div style={styles.label}>今日总结</div>
-            <button
-              onClick={() => speakText(brief)}
-              disabled={!brief || speaking}
-              style={styles.voicePill}
-            >
-              {speaking ? "朗读中…" : "Voice"}
-            </button>
-          </div>
+        {/* 今日简报：压缩成一个语音窗口 */}
+        <button
+          onClick={() => speakText(brief)}
+          disabled={!brief || speaking}
+          style={styles.voiceWindow}
+          className="cc-enter"
+        >
+          <span style={styles.voiceIcon}>{speaking ? "❚❚" : "▶"}</span>
+          <span style={styles.voiceTextWrap}>
+            <span style={styles.voiceTitle}>今日简报</span>
+            <span style={styles.voiceHint}>
+              {!brief
+                ? "整理中…"
+                : speaking
+                ? "正在念给你听…"
+                : "点一下，我念给你听"}
+            </span>
+          </span>
+        </button>
 
-          {brief ? (
-            <div key={brief} style={styles.briefText} className="cc-fade">
-              {brief}
-            </div>
-          ) : (
-            <div>{skeletonLines(2)}</div>
-          )}
-        </section>
-
-        <section style={{ ...styles.card, animationDelay: "80ms" }} className="cc-enter">
+        {/* 今日行程：主角 */}
+        <section
+          style={{ ...styles.heroCard, animationDelay: "60ms" }}
+          className="cc-enter"
+        >
           <div style={styles.cardTop}>
             <div style={styles.label}>今日行程</div>
             <button
@@ -507,117 +510,104 @@ export default function Home() {
           )}
         </section>
 
-        <section style={{ ...styles.card, animationDelay: "120ms" }} className="cc-enter">
-          <div style={styles.cardTop}>
-            <div style={styles.label}>WHOOP</div>
-            {whoop?.connected ? (
-              <div
-                style={{
-                  ...styles.weekTag,
-                  color:
-                    whoop.zone === "green"
-                      ? "#7fb8a0"
-                      : whoop.zone === "red"
-                      ? "#cf8a8a"
-                      : whoop.zone === "yellow"
-                      ? "#cbb27e"
-                      : "rgba(233,236,241,0.6)",
-                }}
-              >
-                恢复度 {whoop.recovery ?? "—"}
-              </div>
-            ) : whoop ? (
-              <a
-                href="/api/whoop/connect"
-                role="button"
-                style={styles.voicePill}
-              >
-                连接
-              </a>
-            ) : null}
-          </div>
-
-          {!whoop ? (
-            <div>{skeletonLines(1)}</div>
-          ) : (
-            <div style={styles.fitnessMeta}>
-              {whoop.connected
-                ? `strain ${whoop.strain ?? "—"} · 睡眠 ${
-                    whoop.sleepPerformance ?? "—"
-                  }%${
-                    whoop.recommendedSleepHours
-                      ? ` · 建议睡 ${whoop.recommendedSleepHours}h`
-                      : ""
-                  }`
-                : whoop.authorized
-                ? "已授权，正在等待数据同步…"
-                : "还没连接。连上后经纪人会按你的恢复度排训练强度。"}
+        {/* WHOOP + 健身：两个紧凑方块 */}
+        <div style={styles.tileRow}>
+          <section
+            style={{ ...styles.tile, animationDelay: "100ms" }}
+            className="cc-enter"
+          >
+            <div style={styles.tileHead}>
+              <span style={styles.label}>WHOOP</span>
             </div>
-          )}
-        </section>
-
-        <section style={{ ...styles.card, animationDelay: "160ms" }} className="cc-enter">
-          <div style={styles.cardTop}>
-            <div style={styles.label}>健身 · 减脂</div>
-            {fitness && fitness.success !== false ? (
-              <div style={styles.weekTag}>
-                本周 {fitness.weekDone ?? 0}/{fitness.weeklyTarget ?? 4}
-              </div>
-            ) : null}
-          </div>
-
-          {!fitness ? (
-            <div>{skeletonLines(2)}</div>
-          ) : fitness.success === false ? (
-            <div style={styles.fitnessMeta}>健身数据暂时读取不了。</div>
-          ) : (
-            <>
-              <div style={styles.progressTrack}>
+            {!whoop ? (
+              <div>{skeletonLines(1)}</div>
+            ) : whoop.connected ? (
+              <>
                 <div
                   style={{
-                    ...styles.progressFill,
-                    width: `${Math.min(
-                      100,
-                      ((fitness.weekDone || 0) /
-                        (fitness.weeklyTarget || 4)) *
-                        100
-                    )}%`,
+                    ...styles.tileValue,
+                    color:
+                      whoop.zone === "green"
+                        ? "#7fb8a0"
+                        : whoop.zone === "red"
+                        ? "#cf8a8a"
+                        : whoop.zone === "yellow"
+                        ? "#cbb27e"
+                        : "#f2f3f5",
                   }}
-                />
-              </div>
+                >
+                  {whoop.recovery ?? "—"}
+                </div>
+                <div style={styles.tileSub}>
+                  恢复度
+                  {whoop.recommendedSleepHours
+                    ? ` · 睡 ${whoop.recommendedSleepHours}h`
+                    : ""}
+                </div>
+              </>
+            ) : (
+              <>
+                <div style={styles.tileSub}>
+                  {whoop.authorized ? "同步中…" : "按恢复度排训练"}
+                </div>
+                <a
+                  href="/api/whoop/connect"
+                  role="button"
+                  style={styles.tileAction}
+                >
+                  连接
+                </a>
+              </>
+            )}
+          </section>
 
-              <div style={styles.fitnessMeta}>
-                {fitness.trainedToday ? "今天已训练 ✓" : "今天还没练"} · 还差{" "}
-                {fitness.remaining ?? 0} 次 · 剩 {fitness.daysLeftInWeek ?? 0} 天
-                {fitness.lastWeight ? ` · ${fitness.lastWeight.kg}kg` : ""}
-              </div>
-
-              <div style={styles.intentRow}>
+          <section
+            style={{ ...styles.tile, animationDelay: "140ms" }}
+            className="cc-enter"
+          >
+            <div style={styles.tileHead}>
+              <span style={styles.label}>健身</span>
+              {fitness && fitness.success !== false ? (
+                <span style={styles.tileBadge}>
+                  {fitness.weekDone ?? 0}/{fitness.weeklyTarget ?? 4}
+                </span>
+              ) : null}
+            </div>
+            {!fitness ? (
+              <div>{skeletonLines(1)}</div>
+            ) : fitness.success === false ? (
+              <div style={styles.tileSub}>读取不了</div>
+            ) : (
+              <>
+                <div style={styles.miniTrack}>
+                  <div
+                    style={{
+                      ...styles.miniFill,
+                      width: `${Math.min(
+                        100,
+                        ((fitness.weekDone || 0) /
+                          (fitness.weeklyTarget || 4)) *
+                          100
+                      )}%`,
+                    }}
+                  />
+                </div>
+                <div style={styles.tileSub}>
+                  {fitness.trainedToday
+                    ? "今天已练 ✓"
+                    : `还差 ${fitness.remaining ?? 0} 次`}
+                </div>
                 <button
                   onClick={fitnessCheckin}
                   disabled={busy !== null}
-                  style={styles.intentButton}
+                  style={styles.tileAction}
                 >
                   {busy === "checkin" ? <span className="cc-spin" /> : "打卡"}
                 </button>
-                <button
-                  onClick={logWeight}
-                  disabled={busy !== null}
-                  style={styles.intentButton}
-                >
-                  {busy === "weight" ? <span className="cc-spin" /> : "记体重"}
-                </button>
-                <button
-                  onClick={coachReview}
-                  disabled={busy !== null}
-                  style={styles.intentButton}
-                >
-                  {busy === "coach" ? <span className="cc-spin" /> : "教练点评"}
-                </button>
-              </div>
-            </>
-          )}
-        </section>
+              </>
+            )}
+          </section>
+        </div>
 
         <section style={{ ...styles.card, animationDelay: "200ms" }} className="cc-enter">
           <div style={styles.label}>经纪人</div>
@@ -693,6 +683,20 @@ export default function Home() {
               style={styles.quickButton}
             >
               健身打卡
+            </button>
+            <button
+              onClick={logWeight}
+              disabled={busy !== null}
+              style={styles.quickButton}
+            >
+              记体重
+            </button>
+            <button
+              onClick={coachReview}
+              disabled={busy !== null}
+              style={styles.quickButton}
+            >
+              教练点评
             </button>
           </div>
         )}
@@ -1084,6 +1088,141 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 14.5,
     fontWeight: 650,
     flexShrink: 0,
+  },
+
+  voiceWindow: {
+    marginTop: 18,
+    width: "100%",
+    display: "flex",
+    alignItems: "center",
+    gap: 14,
+    padding: "13px 15px",
+    borderRadius: 16,
+    background: "rgba(255,255,255,0.05)",
+    border: "1px solid rgba(255,255,255,0.09)",
+    textAlign: "left",
+    color: "#f2f3f5",
+  },
+
+  voiceIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    flexShrink: 0,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    background: "rgba(255,255,255,0.08)",
+    border: "1px solid rgba(255,255,255,0.1)",
+    fontSize: 13,
+    color: "#f2f3f5",
+  },
+
+  voiceTextWrap: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 3,
+    minWidth: 0,
+  },
+
+  voiceTitle: {
+    fontSize: 14.5,
+    fontWeight: 600,
+    color: "#f2f3f5",
+    letterSpacing: 0.2,
+  },
+
+  voiceHint: {
+    fontSize: 12.5,
+    fontWeight: 500,
+    color: "rgba(233,236,241,0.45)",
+    letterSpacing: 0.2,
+  },
+
+  heroCard: {
+    ...glass,
+    marginTop: 16,
+    borderRadius: 22,
+    padding: 22,
+  },
+
+  tileRow: {
+    marginTop: 12,
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: 12,
+  },
+
+  tile: {
+    ...glass,
+    borderRadius: 18,
+    padding: 16,
+    display: "flex",
+    flexDirection: "column",
+    minHeight: 122,
+  },
+
+  tileHead: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
+  },
+
+  tileValue: {
+    marginTop: 12,
+    fontSize: 32,
+    fontWeight: 300,
+    letterSpacing: -0.5,
+    lineHeight: 1,
+    fontVariantNumeric: "tabular-nums",
+  },
+
+  tileSub: {
+    marginTop: 8,
+    fontSize: 12.5,
+    fontWeight: 500,
+    color: "rgba(233,236,241,0.5)",
+    letterSpacing: 0.2,
+  },
+
+  tileBadge: {
+    fontSize: 12.5,
+    fontWeight: 600,
+    color: "rgba(233,236,241,0.62)",
+    fontVariantNumeric: "tabular-nums",
+  },
+
+  tileAction: {
+    marginTop: "auto",
+    alignSelf: "flex-start",
+    padding: "7px 14px",
+    borderRadius: 10,
+    background: "rgba(255,255,255,0.06)",
+    border: "1px solid rgba(255,255,255,0.1)",
+    color: "rgba(233,236,241,0.85)",
+    fontSize: 12.5,
+    fontWeight: 600,
+    textDecoration: "none",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  miniTrack: {
+    marginTop: 14,
+    height: 5,
+    borderRadius: 999,
+    background: "rgba(255,255,255,0.08)",
+    overflow: "hidden",
+  },
+
+  miniFill: {
+    height: "100%",
+    borderRadius: 999,
+    background:
+      "linear-gradient(90deg, rgba(150,165,190,0.85), rgba(184,196,216,0.95))",
+    transition: "width 0.45s ease",
   },
 
   toast: {
