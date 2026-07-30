@@ -1,6 +1,5 @@
-import fs from "fs";
-import path from "path";
 import OpenAI from "openai";
+import { readDoc, writeDoc } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
 
@@ -8,7 +7,14 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-const fitnessPath = path.join(process.cwd(), "memory", "fitness.json");
+const DEFAULT_FITNESS = {
+  goal: "减脂",
+  weeklyTarget: 4,
+  startWeight: null,
+  targetWeight: null,
+  checkins: [] as any[],
+  weights: [] as any[],
+};
 
 const STRICT_COACH = `
 你是用户的私人减脂经纪人兼健身教练，风格极其严格、直接、说一不二，像顶级韩娱经纪人 + 斯巴达教练。
@@ -46,11 +52,11 @@ function daysLeftInWeek(d = new Date()) {
 }
 
 function read() {
-  return JSON.parse(fs.readFileSync(fitnessPath, "utf-8"));
+  return readDoc("fitness", DEFAULT_FITNESS);
 }
 
 function write(data: any) {
-  fs.writeFileSync(fitnessPath, JSON.stringify(data, null, 2));
+  return writeDoc("fitness", data);
 }
 
 function stats(data: any) {
@@ -84,7 +90,7 @@ function stats(data: any) {
 
 export async function GET() {
   try {
-    const data = read();
+    const data = await read();
     return Response.json({ success: true, ...stats(data) });
   } catch {
     return Response.json({ success: false });
@@ -94,7 +100,7 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const baseUrl = new URL(req.url).origin;
-    const data = read();
+    const data = await read();
     const body = await req.json();
     const action = body.action;
 
@@ -108,7 +114,7 @@ export async function POST(req: Request) {
         }),
         note: (body.note || "").trim(),
       });
-      write(data);
+      await write(data);
     } else if (action === "weight") {
       const kg = parseFloat(body.kg);
       if (isNaN(kg)) {
@@ -119,13 +125,13 @@ export async function POST(req: Request) {
       }
       data.weights = data.weights || [];
       data.weights.push({ date: localDate(), kg });
-      write(data);
+      await write(data);
     } else if (action === "setup") {
       if (body.goal) data.goal = body.goal;
       if (body.weeklyTarget) data.weeklyTarget = body.weeklyTarget;
       if (body.targetWeight != null) data.targetWeight = body.targetWeight;
       if (body.startWeight != null) data.startWeight = body.startWeight;
-      write(data);
+      await write(data);
     }
 
     const s = stats(data);

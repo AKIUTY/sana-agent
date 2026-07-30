@@ -1,95 +1,24 @@
-import fs from "fs";
-import path from "path";
+import { readDoc, writeDoc } from "@/lib/store";
 
-const memoryPath =
-  path.join(
-    process.cwd(),
-    "memory",
-    "profile.json"
-  );
+export const dynamic = "force-dynamic";
 
 export async function GET() {
-
   try {
-
-    const data =
-      fs.readFileSync(
-        memoryPath,
-        "utf-8"
-      );
-
-    return Response.json({
-
-      success: true,
-
-      memory:
-        JSON.parse(data),
-
-    });
-
+    const memory = await readDoc("profile", {});
+    return Response.json({ success: true, memory });
   } catch {
-
-    return Response.json({
-
-      success: false,
-
-      memory: {},
-
-    });
-
+    return Response.json({ success: false, memory: {} });
   }
-
 }
 
 export async function POST(req: Request) {
-
   try {
-
-    const body =
-      await req.json();
-
-    const data =
-      fs.readFileSync(
-        memoryPath,
-        "utf-8"
-      );
-
-    const memory =
-      JSON.parse(data);
-
-    const updated = {
-
-      ...memory,
-
-      ...body,
-
-    };
-
-    fs.writeFileSync(
-      memoryPath,
-      JSON.stringify(
-        updated,
-        null,
-        2
-      )
-    );
-
-    return Response.json({
-
-      success: true,
-
-      memory: updated,
-
-    });
-
+    const body = await req.json();
+    const memory = await readDoc<Record<string, any>>("profile", {});
+    const updated = { ...memory, ...body };
+    await writeDoc("profile", updated);
+    return Response.json({ success: true, memory: updated });
   } catch {
-
-    return Response.json({
-
-      success: false,
-
-    });
-
+    return Response.json({ success: false });
   }
-
 }

@@ -1,20 +1,15 @@
-import fs from "fs";
-import path from "path";
 import OpenAI from "openai";
+import { readDoc, writeDoc } from "@/lib/store";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-const memoryPath = path.join(process.cwd(), "memory", "profile.json");
-
 export async function POST(req: Request) {
   try {
     const body = await req.json();
 
-    const currentMemory = JSON.parse(
-      fs.readFileSync(memoryPath, "utf-8")
-    );
+    const currentMemory = await readDoc<Record<string, any>>("profile", {});
 
     const completion = await openai.chat.completions.create({
       model: "gpt-4.1-mini",
@@ -77,10 +72,7 @@ export async function POST(req: Request) {
 
     currentMemory[category].push(extracted.content);
 
-    fs.writeFileSync(
-      memoryPath,
-      JSON.stringify(currentMemory, null, 2)
-    );
+    await writeDoc("profile", currentMemory);
 
     return Response.json({
       success: true,

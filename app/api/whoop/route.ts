@@ -14,11 +14,12 @@ async function whoopGet(path: string, token: string) {
 
 export async function GET() {
   const token = await getValidAccessToken();
+  const authorized = await isAuthorized();
 
   if (!token) {
     return Response.json({
       connected: false,
-      authorized: isAuthorized(),
+      authorized,
       reason: "no_token",
     });
   }
@@ -37,7 +38,7 @@ export async function GET() {
     if (!r && !c && !s) {
       return Response.json({
         connected: false,
-        authorized: isAuthorized(),
+        authorized,
         reason: "unauthorized_or_empty",
       });
     }
@@ -80,7 +81,7 @@ export async function GET() {
   } catch (error: any) {
     return Response.json({
       connected: false,
-      authorized: isAuthorized(),
+      authorized,
       reason: "error",
       error: error?.message || String(error),
     });

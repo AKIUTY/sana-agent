@@ -1,6 +1,5 @@
-import fs from "fs";
-import path from "path";
 import OpenAI from "openai";
+import { readDoc, writeDoc } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
 
@@ -8,8 +7,17 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-const routinePath = path.join(process.cwd(), "memory", "routine.json");
-const fitnessPath = path.join(process.cwd(), "memory", "fitness.json");
+const DEFAULT_ROUTINE = {
+  wake: "08:30",
+  sleep: "00:30",
+  studyHoursPerDay: 4,
+  gamingCapHours: 2,
+  fixed: [] as any[],
+  notes: "",
+  style: "strict",
+  todaySchedule: null as string | null,
+  scheduleDate: null as string | null,
+};
 
 const DAY_SYSTEM = `
 你是用户的私人经纪人，像顶级 idol 经纪人 + 斯巴达教练，风格严格、直接、说一不二。
@@ -55,7 +63,7 @@ function daysLeftInWeek(d = new Date()) {
 
 export async function GET() {
   try {
-    const routine = JSON.parse(fs.readFileSync(routinePath, "utf-8"));
+    const routine = await readDoc("routine", DEFAULT_ROUTINE);
     const today = localDate();
     const schedule =
       routine.scheduleDate === today ? routine.todaySchedule : null;
@@ -74,8 +82,8 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const baseUrl = new URL(req.url).origin;
-    const routine = JSON.parse(fs.readFileSync(routinePath, "utf-8"));
-    const fitness = JSON.parse(fs.readFileSync(fitnessPath, "utf-8"));
+    const routine = await readDoc("routine", DEFAULT_ROUTINE);
+    const fitness = await readDoc("fitness", { checkins: [], weeklyTarget: 4 });
     const body = await req.json().catch(() => ({}));
     const notes = (body.notes || "").trim();
 
@@ -150,7 +158,7 @@ WHOOP：${
 
     routine.todaySchedule = schedule;
     routine.scheduleDate = today;
-    fs.writeFileSync(routinePath, JSON.stringify(routine, null, 2));
+    await writeDoc("routine", routine);
 
     return Response.json({
       success: true,

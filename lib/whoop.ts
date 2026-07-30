@@ -1,5 +1,4 @@
-import fs from "fs";
-import path from "path";
+import { readDoc, writeDoc } from "@/lib/store";
 
 // WHOOP Developer API v2 + OAuth2.
 // Docs: https://developer.whoop.com/docs/developing/oauth/
@@ -11,8 +10,6 @@ export const WHOOP_TOKEN_URL = "https://api.prod.whoop.com/oauth/oauth2/token";
 export const WHOOP_SCOPE =
   "read:profile read:body_measurement read:cycles read:recovery read:sleep read:workout offline";
 
-const storePath = path.join(process.cwd(), "memory", "whoop.json");
-
 type Store = {
   access_token?: string;
   refresh_token?: string;
@@ -20,24 +17,16 @@ type Store = {
   scope?: string;
 };
 
-export function readStore(): Store {
-  try {
-    return JSON.parse(fs.readFileSync(storePath, "utf-8"));
-  } catch {
-    return {};
-  }
-}
-
-function writeStore(store: Store) {
-  fs.writeFileSync(storePath, JSON.stringify(store, null, 2));
+async function readStore(): Promise<Store> {
+  return readDoc<Store>("whoop", {});
 }
 
 export function redirectUri(origin: string) {
   return process.env.WHOOP_REDIRECT_URI || `${origin}/api/whoop/callback`;
 }
 
-function persist(data: any) {
-  const store = readStore();
+async function persist(data: any) {
+  const store = await readStore();
   store.access_token = data.access_token;
   // WHOOP rotates refresh tokens on every refresh — always keep the newest.
   if (data.refresh_token) store.refresh_token = data.refresh_token;
@@ -45,7 +34,7 @@ function persist(data: any) {
   const ttl = Number(data.expires_in || 3600);
   // Refresh 60s early to avoid racing expiry.
   store.expires_at = Date.now() + (ttl - 60) * 1000;
-  writeStore(store);
+  await writeDoc("whoop", store);
 }
 
 export async function exchangeCode(code: string, origin: string) {
@@ -68,7 +57,7 @@ export async function exchangeCode(code: string, origin: string) {
   }
 
   const data = await res.json();
-  persist(data);
+  await persist(data);
   return data;
 }
 
@@ -92,14 +81,14 @@ async function refresh(refreshToken: string) {
   }
 
   const data = await res.json();
-  persist(data);
+  await persist(data);
   return data.access_token as string;
 }
 
 // Returns a usable access token, refreshing if needed. Falls back to a
 // manually-provided WHOOP_ACCESS_TOKEN env var, and null if nothing works.
 export async function getValidAccessToken(): Promise<string | null> {
-  const store = readStore();
+  const store = await readStore();
 
   if (store.access_token && store.expires_at && store.expires_at > Date.now()) {
     return store.access_token;
@@ -120,8 +109,8 @@ export async function getValidAccessToken(): Promise<string | null> {
   return null;
 }
 
-export function isAuthorized(): boolean {
-  const store = readStore();
+export async function isAuthorized(): Promise<boolean> {
+  const store = await readStore();
   return Boolean(
     store.refresh_token || store.access_token || process.env.WHOOP_ACCESS_TOKEN
   );
