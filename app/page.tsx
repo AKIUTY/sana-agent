@@ -20,13 +20,16 @@ export default function Home() {
 
   const [busy, setBusy] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
-  const [speaking, setSpeaking] = useState(false);
+  const [voiceState, setVoiceState] = useState<"idle" | "playing" | "paused">(
+    "idle"
+  );
   const [recording, setRecording] = useState(false);
   const [transcribing, setTranscribing] = useState(false);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   function showToast(msg: string) {
     setToast(msg);
@@ -338,10 +341,26 @@ export default function Home() {
     setBusy(null);
   }
 
-  async function speakText(text: string) {
-    if (!text.trim()) return;
+  async function toggleVoice() {
+    // Playing → pause (keep position).
+    if (voiceState === "playing") {
+      audioRef.current?.pause();
+      setVoiceState("paused");
+      return;
+    }
 
-    setSpeaking(true);
+    // Paused → resume from where it stopped.
+    if (voiceState === "paused" && audioRef.current) {
+      audioRef.current.play();
+      setVoiceState("playing");
+      return;
+    }
+
+    // Idle → fetch and play from the start.
+    const text = brief;
+    if (!text || !text.trim()) return;
+
+    setVoiceState("playing");
 
     try {
       const res = await fetch("/api/tts", {
@@ -355,13 +374,20 @@ export default function Home() {
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const audio = new Audio(url);
+      audioRef.current = audio;
 
-      audio.onended = () => setSpeaking(false);
-      audio.onerror = () => setSpeaking(false);
+      const cleanup = () => {
+        setVoiceState("idle");
+        audioRef.current = null;
+        URL.revokeObjectURL(url);
+      };
+      audio.onended = cleanup;
+      audio.onerror = cleanup;
 
-      audio.play();
+      await audio.play();
     } catch {
-      setSpeaking(false);
+      setVoiceState("idle");
+      audioRef.current = null;
     }
   }
 
@@ -458,21 +484,25 @@ export default function Home() {
           <div style={styles.status}>经纪人已上线。</div>
         </div>
 
-        {/* 今日简报：压缩成一个语音窗口 */}
+        {/* 今日简报：压缩成一个语音窗口，可随时暂停 */}
         <button
-          onClick={() => speakText(brief)}
-          disabled={!brief || speaking}
+          onClick={toggleVoice}
+          disabled={!brief}
           style={styles.voiceWindow}
           className="cc-enter"
         >
-          <span style={styles.voiceIcon}>{speaking ? "❚❚" : "▶"}</span>
+          <span style={styles.voiceIcon}>
+            {voiceState === "playing" ? "❚❚" : "▶"}
+          </span>
           <span style={styles.voiceTextWrap}>
             <span style={styles.voiceTitle}>今日简报</span>
             <span style={styles.voiceHint}>
               {!brief
                 ? "整理中…"
-                : speaking
-                ? "正在念给你听…"
+                : voiceState === "playing"
+                ? "正在念给你听 · 点一下暂停"
+                : voiceState === "paused"
+                ? "已暂停 · 点一下继续"
                 : "点一下，我念给你听"}
             </span>
           </span>
