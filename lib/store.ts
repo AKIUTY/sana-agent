@@ -6,10 +6,21 @@ import path from "path";
 // read-only serverless filesystem); otherwise falls back to local files so
 // local development still works. Read falls back to the bundled seed file so
 // defaults survive the first run before anything is written.
-const KV_URL =
-  process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL || "";
-const KV_TOKEN =
-  process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN || "";
+// Find a KV credential by suffix, tolerating any prefix Vercel's storage
+// integration adds (e.g. STORAGE_KV_REST_API_URL, UPSTASH_REDIS_REST_URL).
+function findEnv(suffixes: string[]): string {
+  for (const suffix of suffixes) {
+    if (process.env[suffix]) return process.env[suffix] as string;
+  }
+  for (const [key, value] of Object.entries(process.env)) {
+    if (!value) continue;
+    if (suffixes.some((s) => key.endsWith(`_${s}`))) return value;
+  }
+  return "";
+}
+
+const KV_URL = findEnv(["KV_REST_API_URL", "UPSTASH_REDIS_REST_URL"]);
+const KV_TOKEN = findEnv(["KV_REST_API_TOKEN", "UPSTASH_REDIS_REST_TOKEN"]);
 
 export const storeBackend: "kv" | "file" = KV_URL && KV_TOKEN ? "kv" : "file";
 
